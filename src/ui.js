@@ -675,6 +675,14 @@ function renderNet() {
   $('shareBtn').hidden = !!v?.opponent.present;
 }
 
+async function copyCode() {
+  const btn = $('copyCodeBtn');
+  try { await navigator.clipboard.writeText(S.online.code); btn.textContent = 'Code copié'; }
+  catch { const sel = getSelection(), r = document.createRange(); r.selectNodeContents($('netCode')); sel.removeAllRanges(); sel.addRange(r); btn.textContent = 'Code sélectionné'; }
+  btn.classList.add('done');
+  setTimeout(() => { btn.textContent = 'Copier le code'; btn.classList.remove('done'); }, 2000);
+}
+
 async function shareInvite() {
   const code = S.online.code, url = net.shareUrl(code);
   const text = `Rejoins-moi sur Amiral, la bataille navale. Code de la partie : ${code}`;
@@ -708,6 +716,7 @@ function wireOnline() {
     joinOnline(code);
   });
   $('shareBtn').addEventListener('click', shareInvite);
+  $('copyCodeBtn').addEventListener('click', copyCode);
   $('leaveBtn').addEventListener('click', () => leaveOnline());
 }
 
