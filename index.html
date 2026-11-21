@@ -29,14 +29,50 @@
         <small>Touché coulé · Bataille navale</small>
       </div>
     </div>
-    <div class="modes" aria-label="Mode de jeu">
-      <span class="on">Solo</span>
-      <span class="off">En ligne · bientôt</span>
+    <div class="modes" role="tablist" aria-label="Mode de jeu">
+      <button type="button" role="tab" id="modeSolo">Solo</button>
+      <button type="button" role="tab" id="modeOnline">En ligne</button>
     </div>
   </header>
 
+  <!-- ===== En ligne : créer ou rejoindre ===== -->
+  <section id="lobby" aria-label="Partie en ligne" hidden>
+    <div class="lobby-grid">
+      <div class="panel plate">
+        <h2>Créer une partie</h2>
+        <p class="level-desc">Choisissez la grille et la règle, puis envoyez le code à votre adversaire.</p>
+        <fieldset>
+          <legend>Taille de la grille</legend>
+          <div class="seg" role="radiogroup">
+            <label><input type="radio" name="osize" id="osize-8" value="8">8 × 8</label>
+            <label><input type="radio" name="osize" id="osize-10" value="10">10 × 10</label>
+            <label><input type="radio" name="osize" id="osize-12" value="12">12 × 12</label>
+          </div>
+        </fieldset>
+        <label class="check"><input type="checkbox" id="oReplay"><span>Rejouer après un tir réussi</span></label>
+        <button class="btn primary" id="createBtn" type="button">Créer la partie</button>
+      </div>
+      <form class="panel plate" id="joinForm">
+        <h2>Rejoindre</h2>
+        <p class="level-desc">Entrez le code que votre adversaire vous a envoyé.</p>
+        <label class="sr" for="joinCode">Code de la partie</label>
+        <input class="code-input" id="joinCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="K7QPM" inputmode="text">
+        <button class="btn primary" id="joinBtn" type="submit">Rejoindre</button>
+      </form>
+    </div>
+    <p class="lobby-msg" id="lobbyMsg" aria-live="polite"></p>
+  </section>
+
   <!-- ===== Placement ===== -->
   <section id="setup" aria-label="Préparation">
+    <div class="netbar plate" id="netbar" hidden>
+      <div class="net-code"><span>Code de la partie</span><b id="netCode">-----</b></div>
+      <span class="chip" id="netStatus"></span>
+      <div class="net-actions">
+        <button class="btn" id="shareBtn" type="button">Envoyer le lien</button>
+        <button class="btn" id="leaveBtn" type="button">Quitter</button>
+      </div>
+    </div>
     <div class="setup-layout">
       <div class="board-col">
         <h2>Déployez votre flotte</h2>
@@ -54,7 +90,11 @@
         <button class="btn primary" id="startBtn" type="button">Lancer la bataille</button>
       </div>
       <aside class="panel plate">
-        <fieldset>
+        <fieldset class="online-only">
+          <legend>Partie en ligne</legend>
+          <p class="level-desc" id="roomInfo"></p>
+        </fieldset>
+        <fieldset class="solo-only">
           <legend>Niveau de l'ordinateur</legend>
           <div class="seg" role="radiogroup">
             <label><input type="radio" name="level" id="lvl-easy" value="easy">Facile</label>
@@ -63,7 +103,7 @@
           </div>
           <p class="level-desc" id="levelDesc"></p>
         </fieldset>
-        <fieldset>
+        <fieldset class="solo-only">
           <legend>Taille de la grille</legend>
           <div class="seg" role="radiogroup">
             <label><input type="radio" name="size" id="size-8" value="8">8 × 8</label>
@@ -72,7 +112,7 @@
           </div>
           <p class="level-desc" id="sizeDesc"></p>
         </fieldset>
-        <fieldset>
+        <fieldset class="solo-only">
           <legend>Règle</legend>
           <label class="check"><input type="checkbox" id="replayOpt"><span>Rejouer après un tir réussi<small>Chaque touché donne un tir de plus, pour vous comme pour l'ordinateur.</small></span></label>
         </fieldset>

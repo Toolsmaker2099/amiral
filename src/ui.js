@@ -1,5 +1,6 @@
 import { SIZE, SIZES, LETTERS, FLEET, coord, Engine, Match, setGridSize } from './engine.js';
 import { AI } from './ai.js';
+import { createOnline, CODE_RE, normalizeCode } from './online.js';
 
 /* ==========================================================
    3. INTERFACE — lit l'état, l'affiche, et transmet les gestes.
@@ -33,6 +34,7 @@ function freshState(prev) {
     size: (setSize(prev?.size || prefs.size || 10), SIZE),
     replayOnHit: prev?.replayOnHit ?? prefs.replayOnHit ?? true,
     setup: { board: Engine.randomize(Engine.newBoard()), selected: null },
+    mode: 'solo',
     match: null, ai: null, log: [], last: null, endDismissed: false,
   };
 }
@@ -114,7 +116,10 @@ function rotateShip(id, pivot) {
   return false;
 }
 
+const isLocked = () => S.mode === 'online' && !!net.state?.me.ready;
+
 function tapCell(r, c) {
+  if (isLocked()) return;
   const st = S.setup, b = st.board, there = Engine.shipAt(b, r, c);
   if (there) {
     st.selected = there.id;
@@ -141,7 +146,7 @@ function rotateSelected() {
 
 /* Glisser-déposer : depuis le chantier naval ou depuis la grille. */
 function beginDrag(e, d) {
-  if (e.button > 0) return;
+  if (e.button > 0 || isLocked()) return;
   e.preventDefault();
   drag = { ...d, pid: e.pointerId, x0: e.clientX, y0: e.clientY, moved: false, target: null, valid: false };
   try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
@@ -225,14 +230,20 @@ function renderSetup() {
   }
 
   const done = Engine.isComplete(b);
-  $('startBtn').disabled = !done;
+  const online = S.mode === 'online', v = net.state;
+  $('setup').classList.toggle('online', online);
+  $('setup').querySelector('.board-col').classList.toggle('locked', isLocked());
+  $('startBtn').disabled = !done || (online && !v);
+  $('startBtn').textContent = !online ? 'Lancer la bataille' : v?.me.ready ? 'Modifier ma flotte' : 'Je suis prêt';
   const selPlaced = st.selected && b.ships.some(s => s.id === st.selected);
   $('rotateBtn').disabled = !selPlaced;
   const hint = $('setupHint');
   if (!hint.classList.contains('warn') || !hintTimer) {
     hint.classList.remove('warn');
     const sel = st.selected && def(st.selected);
-    hint.textContent = sel && !selPlaced
+    hint.textContent = online && v?.me.ready
+      ? (v.opponent.present ? 'Flotte prête. Votre adversaire termine son placement…' : 'Flotte prête. En attente de votre adversaire…')
+      : sel && !selPlaced
       ? `Glissez le ${sel.name.toLowerCase()} sur la grille, ou touchez une case pour le poser.`
       : done ? 'Flotte en position. Glissez un navire pour le déplacer, touchez-le pour le faire pivoter.'
              : 'Glissez les navires du chantier naval vers la grille. Touchez un navire posé pour le faire pivoter.';
@@ -242,6 +253,8 @@ function renderSetup() {
   for (const n of [8, 10, 12]) $('size-' + n).checked = SIZE === n;
   $('sizeDesc').textContent = SIZES[SIZE];
   $('replayOpt').checked = S.replayOnHit;
+  if (online && v) $('roomInfo').textContent = `Grille ${v.size} × ${v.size}. ${v.replayOnHit ? 'On rejoue après un tir réussi.' : 'Chacun tire à son tour, même après un touché.'} Le premier joueur est tiré au sort.`;
+  renderNet();
 }
 
 /* ---------- Bataille ---------- */
@@ -266,7 +279,7 @@ function describe(res) {
     if (res.result === 'hit') return { at, text: 'Touché !' };
     return { at, text: `Touché, coulé ! Le ${res.ship.name.toLowerCase()} ennemi sombre.` };
   }
-  if (res.result === 'miss') return { at, text: 'L\'ennemi tire dans l\'eau.' };
+  if (res.result === 'miss') return { at, text: S.mode === 'online' ? 'L\'adversaire tire dans l\'eau.' : 'L\'ennemi tire dans l\'eau.' };
   if (res.result === 'hit') return { at, text: `Votre ${res.ship.name.toLowerCase()} est touché.` };
   return { at, text: `Coulé ! Votre ${res.ship.name.toLowerCase()} est perdu.` };
 }
@@ -289,8 +302,8 @@ function resolveShot(res) {
   const extra = reduceMotion ? 0 : res.result === 'sunk' ? 1400 : 0;
   if (res.shooter === 0 && m.turn === 1) {
     // Laisse voir son propre tir, puis montre sa flotte avant le tir de l'ordinateur.
-    viewTimer = setTimeout(() => { showView('mine'); scheduleAI(); }, (reduceMotion ? 300 : 1000) + extra);
-  } else if (res.shooter === 1 && m.turn === 1) scheduleAI((reduceMotion ? 300 : 1100) + extra);
+    viewTimer = setTimeout(() => { showView('mine'); if (S.mode === 'solo') scheduleAI(); }, (reduceMotion ? 300 : 1000) + extra);
+  } else if (res.shooter === 1 && m.turn === 1) { if (S.mode === 'solo') scheduleAI((reduceMotion ? 300 : 1100) + extra); }
   else if (res.shooter === 1 && m.turn === 0) {
     viewTimer = setTimeout(() => showView('enemy'), (reduceMotion ? 600 : 2300) + extra);
   }
@@ -307,6 +320,11 @@ function showView(v) {
 function onEnemyCell(r, c) {
   const m = S.match;
   if (!m || m.phase !== 'battle' || m.turn !== 0) return;
+  if (S.mode === 'online') {
+    if (m.boards[1].shots[r * SIZE + c] || net.firing) return;
+    if (net.send({ t: 'fire', r, c })) { net.firing = true; setTimeout(() => { net.firing = false; }, 1500); }
+    return;
+  }
   const res = Match.shoot(m, 0, r, c);
   if (res.result === 'repeat' || res.result === 'refused') return;
   resolveShot(res);
@@ -347,14 +365,15 @@ function paintBoard(board, data, { own, over, armed }) {
   board._sea.classList.toggle('armed', !!armed);
   board._cells.forEach((el, i) => {
     const r = Math.floor(i / SIZE), c = i % SIZE, shot = data.shots[i], s = Engine.shipAt(data, r, c);
+    const sunkHere = !!s && Engine.isSunk(s);
     const cls = ['cell'];
     let label = own ? (s ? s.name : 'eau') : 'inconnu';
     if (shot === 1) { cls.push('miss'); label = 'à l\'eau'; }
     if (shot === 2) {
       cls.push('hit');
-      if (own || Engine.isSunk(s)) cls.push('onship');
-      if (Engine.isSunk(s)) cls.push('sunk');
-      label = Engine.isSunk(s) ? 'coulé' : 'touché';
+      if (own || sunkHere) cls.push('onship');
+      if (sunkHere) cls.push('sunk');
+      label = sunkHere ? 'coulé' : 'touché';
     }
     if (!shot) cls.push('unknown');
     if (lastHere && S.last.r === r && S.last.c === c) cls.push('last');
@@ -366,8 +385,8 @@ function paintBoard(board, data, { own, over, armed }) {
 
 function trackerHTML(data, own) {
   return FLEET.map(f => {
-    const s = data.ships.find(x => x.id === f.id), down = Engine.isSunk(s);
-    return `<li class="${down ? 'down' : ''}">${pipsHTML(f.len, own || down ? s.hits : 0)}<span>${f.name}</span></li>`;
+    const s = data.ships.find(x => x.id === f.id), down = !!s && Engine.isSunk(s);
+    return `<li class="${down ? 'down' : ''}">${pipsHTML(f.len, s && (own || down) ? s.hits : 0)}<span>${f.name}</span></li>`;
   }).join('');
 }
 
@@ -387,16 +406,20 @@ function renderBattle() {
 
   const pct = st => st.shots ? Math.round(100 * st.hits / st.shots) + ' %' : '–';
   $('enemyTag').textContent = `Vos tirs ${m.stats[0].shots} · ${pct(m.stats[0])}`;
-  $('myTag').textContent = `IA ${AI.LEVELS[S.ai.level].label.toLowerCase()} · ${m.stats[1].shots} tirs`;
+  const online = S.mode === 'online', v = net.state;
+  $('myTag').textContent = online ? `Adversaire · ${m.stats[1].shots} tirs` : `IA ${AI.LEVELS[S.ai.level].label.toLowerCase()} · ${m.stats[1].shots} tirs`;
 
   $('beacon').className = 'beacon' + (over ? ' over' : m.turn === 1 ? ' enemy' : '');
-  $('turnLabel').textContent = over ? (m.winner === 0 ? 'Victoire' : 'Défaite') : m.turn === 0 ? 'À vous de tirer' : 'L\'ennemi vise…';
+  $('turnLabel').textContent = over ? (m.winner === 0 ? 'Victoire' : 'Défaite') : m.turn === 0 ? 'À vous de tirer' : online ? 'L\'adversaire vise…' : 'L\'ennemi vise…';
   const lastShot = S.log.find(e => !e.sys);
-  $('lastMsg').innerHTML = lastShot ? `<b>${lastShot.who === 0 ? 'Vous' : 'Ennemi'} · ${lastShot.at}</b> · ${esc(lastShot.text)}` : 'Touchez une case des eaux ennemies pour tirer.';
+  $('lastMsg').innerHTML = online && S.online.status !== 'online' ? 'Connexion perdue. Reconnexion en cours…'
+    : online && v && !v.opponent.connected && !over ? 'Votre adversaire s\'est déconnecté. La partie reprendra à son retour.'
+    : lastShot ? `<b>${lastShot.who === 0 ? 'Vous' : online ? 'Adversaire' : 'Ennemi'} · ${lastShot.at}</b> · ${esc(lastShot.text)}`
+    : m.turn === 0 ? 'Touchez une case des eaux ennemies pour tirer.' : 'Votre adversaire tire en premier.';
 
 
   const qb = $('quitBtn');
-  qb.textContent = quitArmed ? 'Confirmer l\'abandon' : 'Nouvelle partie';
+  qb.textContent = quitArmed ? (online ? 'Confirmer : quitter' : 'Confirmer l\'abandon') : online ? 'Quitter' : 'Nouvelle partie';
   qb.classList.toggle('danger', !!quitArmed);
 
   const endShown = over && !S.endDismissed && !endPending;
@@ -405,9 +428,13 @@ function renderBattle() {
     const win = m.winner === 0, st = m.stats[0];
     $('endCard').className = 'card plate ' + (win ? 'win' : 'lose');
     $('endTitle').textContent = win ? 'Victoire' : 'Défaite';
-    $('endText').textContent = win
-      ? `Toute la flotte ennemie est par le fond, en ${st.shots} tirs.`
-      : `L'ordinateur a coulé vos cinq navires en ${m.stats[1].shots} tirs. Ses navires restants sont dévoilés sur la grille.`;
+    $('endText').textContent = (win
+      ? `Toute la flotte ${online ? 'adverse' : 'ennemie'} est par le fond, en ${st.shots} tirs.`
+      : `${online ? 'Votre adversaire' : 'L\'ordinateur'} a coulé vos cinq navires en ${m.stats[1].shots} tirs. Ses navires restants sont dévoilés sur la grille.`)
+      + (online && v?.opponent.rematch && !v.me.rematch ? ' Votre adversaire propose une revanche.' : '');
+    const again = $('againBtn');
+    again.textContent = online ? (v?.me.rematch ? 'Revanche demandée…' : 'Revanche') : 'Rejouer';
+    again.disabled = online && !!v?.me.rematch;
     $('stShots').textContent = st.shots;
     $('stHits').textContent = st.hits;
     $('stAcc').textContent = pct(st);
@@ -416,6 +443,10 @@ function renderBattle() {
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 function render() {
+  $('modeSolo').setAttribute('aria-selected', S.mode === 'solo' && S.screen !== 'lobby');
+  $('modeOnline').setAttribute('aria-selected', S.mode === 'online' || S.screen === 'lobby');
+  $('lobby').hidden = S.screen !== 'lobby';
+  if (S.screen === 'lobby') { $('setup').hidden = $('battle').hidden = $('endScreen').hidden = true; renderLobby(); return; }
   $('setup').hidden = S.screen !== 'setup';
   $('battle').hidden = S.screen !== 'battle';
   if (S.screen === 'setup') { $('endScreen').hidden = true; syncCellSize(); renderSetup(); }
@@ -427,6 +458,7 @@ function syncCellSize() {
 }
 
 function newGame() {
+  if (S.mode === 'online') return leaveOnline();
   clearTimeout(aiTimer); clearTimeout(viewTimer); clearTimeout(endTimer); endPending = false; view = 'enemy'; quitArmed = null; hover = null; drag = null;
   S = freshState(S);
   render();
@@ -492,7 +524,14 @@ function wire() {
     S.setup.board = Engine.randomize(Engine.newBoard()); S.setup.selected = null; hover = null;
     render();
   }));
-  $('startBtn').addEventListener('click', startBattle);
+  $('startBtn').addEventListener('click', () => {
+    if (S.mode !== 'online') return startBattle();
+    if (net.state?.me.ready) net.send({ t: 'unready' });
+    else if (Engine.isComplete(S.setup.board)) {
+      net.send({ t: 'fleet', ships: S.setup.board.ships.map(({ id, r, c, h, rev }) => ({ id, r, c, h, rev: !!rev })) });
+      S.setup.selected = null;
+    }
+  });
   document.addEventListener('keydown', e => {
     if (S.screen === 'setup' && (e.key === 'r' || e.key === 'R') && !e.metaKey && !e.ctrlKey && !e.altKey) {
       if (drag && drag.moved) { [drag.h, drag.rev] = nextOrient(drag.h, drag.rev); drag.offset = 0; drag.target = null; drawGhost(drag.x0, drag.y0); renderSetup(); }
@@ -503,13 +542,173 @@ function wire() {
 
   $('enemyBoard')._sea.addEventListener('click', e => { const p = cellFrom(e); if (p) onEnemyCell(...p); });
   $('quitBtn').addEventListener('click', () => {
-    if (S.match.phase === 'over' || quitArmed) return newGame();
+    if (S.match.phase === 'over' || quitArmed) { clearTimeout(quitArmed); quitArmed = null; return S.mode === 'online' ? leaveOnline() : newGame(); }
     quitArmed = setTimeout(() => { quitArmed = null; renderBattle(); }, 3000);
     renderBattle();
   });
   document.querySelector('.viewswitch').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) { clearTimeout(viewTimer); showView(b.dataset.v); } });
-  $('againBtn').addEventListener('click', newGame);
+  $('againBtn').addEventListener('click', () => {
+    if (S.mode === 'online') { net.send({ t: 'rematch' }); return; }
+    newGame();
+  });
+  wireOnline();
   $('viewBtn').addEventListener('click', () => { S.endDismissed = true; render(); });
+}
+
+
+/* ==========================================================
+   4. PARTIE EN LIGNE — le serveur arbitre, l'interface affiche.
+   ========================================================== */
+const net = Object.assign(createOnline({
+  onState: v => onServerState(v),
+  onError: e => onServerError(e),
+  onStatus: s => { if (S.mode !== 'online') return; S.online.status = s; render(); },
+}), { state: null, firing: false });
+
+function enterOnline(code) {
+  clearTimeout(aiTimer); clearTimeout(viewTimer); clearTimeout(endTimer); endPending = false;
+  S.mode = 'online'; S.online = { code, status: 'connecting' };
+  net.state = null; net.firing = false;
+  S.screen = 'setup'; S.match = null; S.setup.selected = null; quitArmed = null;
+  render();
+}
+function joinOnline(code) { net.join(code); enterOnline(code); }
+
+async function createOnlineGame() {
+  const btn = $('createBtn'); btn.disabled = true; lobbyMsg('');
+  try {
+    const code = await net.create({ size: S.size, replayOnHit: S.replayOnHit });
+    enterOnline(code);
+  } catch {
+    lobbyMsg('Impossible de joindre le serveur de parties. Vérifiez votre connexion et réessayez.');
+  } finally { btn.disabled = false; }
+}
+
+function leaveOnline(msg) {
+  net.leave(); net.state = null;
+  clearTimeout(viewTimer); clearTimeout(endTimer); endPending = false; quitArmed = null;
+  const prev = S; S = freshState(prev);
+  if (msg) { S.screen = 'lobby'; render(); lobbyMsg(msg); }
+  else render();
+  window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+
+function onServerError(e) {
+  if (S.mode !== 'online') return;
+  if (e.code === 'fleet') { flashHint('Le serveur a refusé cette flotte. Vérifiez le placement.'); return; }
+  const text = e.code === 'full' ? 'Cette partie a déjà deux joueurs.'
+    : e.code === 'gone' ? 'Ce code ne correspond à aucune partie en cours. Elle a peut-être expiré.'
+    : e.text || 'La partie a été interrompue.';
+  leaveOnline(text);
+}
+
+function matchFromServer(v) {
+  return {
+    phase: v.phase === 'over' ? 'over' : 'battle',
+    turn: v.myTurn ? 0 : 1,
+    winner: v.phase === 'over' ? (v.youWon ? 0 : 1) : null,
+    round: v.round, stats: v.stats, opts: { replayOnHit: v.replayOnHit },
+    boards: [{ ships: v.me.ships || [], shots: v.me.shots }, { ships: v.enemy.ships, shots: v.enemy.shots }],
+  };
+}
+
+function onServerState(v) {
+  if (S.mode !== 'online') return;
+  const prev = net.state;
+  net.state = v; net.firing = false;
+  S.online.status = 'online';
+  if (v.size !== SIZE) {
+    setSize(v.size);
+    if (!S.setup.board.ships.every(s => Engine.shipCells(s).every(([r, c]) => Engine.inBounds(r, c)))) Engine.randomize(S.setup.board);
+    S.setup.board.shots = new Array(SIZE * SIZE).fill(0);
+  }
+
+  if (v.phase === 'lobby' || v.phase === 'placing') {
+    if (S.screen !== 'setup') {
+      clearTimeout(viewTimer); clearTimeout(endTimer); endPending = false;
+      S.screen = 'setup'; S.match = null; S.setup.selected = null;
+      window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    }
+    render();
+    return;
+  }
+
+  const fresh = S.screen !== 'battle' || !S.match || (prev && prev.phase !== 'battle' && prev.phase !== 'over');
+  S.match = matchFromServer(v);
+  if (fresh) {
+    S.screen = 'battle'; S.log = []; S.last = null; S.boom = null; S.endDismissed = false;
+    S.seenSeq = v.last?.seq ?? 0;
+    view = v.myTurn || v.phase === 'over' ? 'enemy' : 'mine';
+    addLog({ sys: true, text: v.myTurn ? 'Bataille engagée. Le sort vous désigne : vous tirez en premier.' : 'Bataille engagée. Votre adversaire tire en premier.' });
+    render();
+    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    return;
+  }
+  if (v.last && v.last.seq !== S.seenSeq) {
+    S.seenSeq = v.last.seq;
+    resolveShot({ shooter: v.last.mine ? 0 : 1, r: v.last.r, c: v.last.c, result: v.last.result, ship: v.last.ship });
+    return;
+  }
+  render();
+}
+
+function lobbyMsg(t) { $('lobbyMsg').textContent = t; }
+function renderLobby() {
+  for (const n of [8, 10, 12]) $('osize-' + n).checked = S.size === n;
+  $('oReplay').checked = S.replayOnHit;
+}
+
+function renderNet() {
+  const online = S.mode === 'online', bar = $('netbar');
+  bar.hidden = !online;
+  if (!online) return;
+  const v = net.state, st = S.online.status;
+  $('netCode').textContent = S.online.code;
+  const chip = $('netStatus');
+  let text, cls;
+  if (st !== 'online') { text = st === 'connecting' ? 'Connexion…' : 'Connexion perdue, reconnexion…'; cls = 'wait'; }
+  else if (!v || !v.opponent.present) { text = 'En attente de votre adversaire'; cls = 'wait'; }
+  else if (!v.opponent.connected) { text = 'Adversaire déconnecté'; cls = 'bad'; }
+  else if (v.opponent.ready) { text = 'Adversaire prêt'; cls = 'ok'; }
+  else { text = 'Adversaire en train de placer sa flotte'; cls = 'ok'; }
+  chip.textContent = text; chip.className = 'chip ' + cls;
+  $('shareBtn').hidden = !!v?.opponent.present;
+}
+
+async function shareInvite() {
+  const code = S.online.code, url = net.shareUrl(code);
+  const text = `Rejoins-moi sur Amiral, la bataille navale. Code de la partie : ${code}`;
+  if (navigator.share) { try { await navigator.share({ title: 'Amiral', text, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(`${text}\n${url}`); $('shareBtn').textContent = 'Lien copié'; }
+  catch { const sel = getSelection(); const r = document.createRange(); r.selectNodeContents($('netCode')); sel.removeAllRanges(); sel.addRange(r); $('shareBtn').textContent = 'Code sélectionné'; }
+  setTimeout(() => { $('shareBtn').textContent = 'Envoyer le lien'; }, 2200);
+}
+
+function wireOnline() {
+  $('modeOnline').addEventListener('click', () => {
+    if (S.mode === 'online') return;
+    clearTimeout(aiTimer); clearTimeout(viewTimer); clearTimeout(endTimer); endPending = false;
+    S.screen = 'lobby'; lobbyMsg(''); render();
+  });
+  $('modeSolo').addEventListener('click', () => {
+    if (S.mode === 'online') return leaveOnline();
+    if (S.screen === 'lobby') { S.screen = 'setup'; setSize(S.size); render(); }
+  });
+  document.querySelectorAll('input[name="osize"]').forEach(inp => inp.addEventListener('change', () => {
+    S.size = +inp.value; savePrefs(); setSize(S.size);
+    S.setup.board = Engine.randomize(Engine.newBoard()); S.setup.selected = null;
+  }));
+  $('oReplay').addEventListener('change', e => { S.replayOnHit = e.target.checked; savePrefs(); });
+  $('createBtn').addEventListener('click', createOnlineGame);
+  $('joinCode').addEventListener('input', e => { const t = e.target; const v = normalizeCode(t.value).slice(0, 5); if (t.value !== v) t.value = v; });
+  $('joinForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const code = normalizeCode($('joinCode').value);
+    if (!CODE_RE.test(code)) { lobbyMsg('Le code fait 5 caractères, par exemple K7QPM.'); return; }
+    joinOnline(code);
+  });
+  $('shareBtn').addEventListener('click', shareInvite);
+  $('leaveBtn').addEventListener('click', () => leaveOnline());
 }
 
 function start(data) {
@@ -517,6 +716,12 @@ function start(data) {
   setSize(S.size || 10); S.size = SIZE;
   wire();
   render();
+  // Lien d'invitation (?partie=CODE) ou retour dans une partie en cours.
+  const params = new URLSearchParams(location.search);
+  const invited = normalizeCode(params.get('partie'));
+  if (params.has('partie')) history.replaceState(null, '', location.pathname + location.hash);
+  if (CODE_RE.test(invited)) joinOnline(invited);
+  else { const code = net.resume(); if (code) enterOnline(code); }
   if (S.screen === 'battle' && S.match.phase === 'battle' && S.match.turn === 1) { view = 'mine'; render(); scheduleAI(); }
 }
 

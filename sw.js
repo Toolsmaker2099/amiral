@@ -1,7 +1,7 @@
 // Service worker d'Amiral : garde le jeu en cache pour jouer hors ligne.
 // Les fichiers du jeu passent toujours par le réseau d'abord : chaque déploiement
 // sur main arrive donc tout seul chez les joueurs, le cache ne sert que hors ligne.
-const VERSION = 'amiral-v2';
+const VERSION = 'amiral-v3';
 const SHELL = [
   './',
   './index.html',
@@ -10,6 +10,8 @@ const SHELL = [
   './src/engine.js',
   './src/ai.js',
   './src/ui.js',
+  './src/online.js',
+  './src/config.js',
   './icons/favicon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
