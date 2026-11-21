@@ -394,9 +394,6 @@ function renderBattle() {
   const lastShot = S.log.find(e => !e.sys);
   $('lastMsg').innerHTML = lastShot ? `<b>${lastShot.who === 0 ? 'Vous' : 'Ennemi'} · ${lastShot.at}</b> · ${esc(lastShot.text)}` : 'Touchez une case des eaux ennemies pour tirer.';
 
-  $('log').innerHTML = S.log.map(e => e.sys
-    ? `<li class="sys"><span class="n">${pad(e.n)}</span><span>${esc(e.text)}</span></li>`
-    : `<li class="who-${e.who}"><span class="n">${pad(e.n)}</span><span class="at">${e.who === 0 ? '▸' : '◂'} ${e.at}</span><span>${esc(e.text)}</span></li>`).join('');
 
   const qb = $('quitBtn');
   qb.textContent = quitArmed ? 'Confirmer l\'abandon' : 'Nouvelle partie';
@@ -416,7 +413,6 @@ function renderBattle() {
     $('stAcc').textContent = pct(st);
   }
 }
-const pad = n => String(n).padStart(3, '0');
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 function render() {
