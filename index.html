@@ -58,6 +58,7 @@
         <label class="sr" for="joinCode">Code de la partie</label>
         <input class="code-input" id="joinCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="K7QPM" inputmode="text">
         <button class="btn primary" id="joinBtn" type="submit">Rejoindre</button>
+        <button class="btn" id="scanBtn" type="button">Scanner un QR code</button>
       </form>
     </div>
     <p class="lobby-msg" id="lobbyMsg" aria-live="polite"></p>
@@ -70,6 +71,7 @@
       <button class="btn copy-btn" id="copyCodeBtn" type="button" aria-label="Copier le code">Copier le code</button>
       <span class="chip" id="netStatus"></span>
       <div class="net-actions">
+        <button class="btn" id="qrBtn" type="button">QR code</button>
         <button class="btn" id="shareBtn" type="button">Envoyer le lien</button>
         <button class="btn" id="leaveBtn" type="button">Quitter</button>
       </div>
@@ -158,6 +160,25 @@
       </article>
     </div>
   </section>
+
+  <div class="overlay" id="qrScreen" hidden>
+    <div class="card plate qr-card" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
+      <h2 id="qrTitle">Rejoindre la partie</h2>
+      <p>Votre adversaire scanne ce QR code avec l'appareil photo de son téléphone, ou depuis Amiral avec « Scanner un QR code ».</p>
+      <div class="qr-box" id="qrBox"></div>
+      <p class="qr-code" id="qrCodeText"></p>
+      <button class="btn primary" id="qrClose" type="button">Fermer</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="scanScreen" hidden>
+    <div class="card plate scan-card" role="dialog" aria-modal="true" aria-labelledby="scanTitle">
+      <h2 id="scanTitle">Scanner un QR code</h2>
+      <div class="scan-view"><video id="scanVideo" playsinline muted></video><span class="scan-frame" aria-hidden="true"></span></div>
+      <p id="scanMsg" aria-live="polite"></p>
+      <button class="btn" id="scanClose" type="button">Annuler</button>
+    </div>
+  </div>
 
   <div class="overlay" id="endScreen" hidden>
     <div class="card plate" id="endCard" role="dialog" aria-modal="true" aria-labelledby="endTitle">

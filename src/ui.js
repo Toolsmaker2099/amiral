@@ -1,6 +1,7 @@
 import { SIZE, SIZES, LETTERS, FLEET, coord, Engine, Match, setGridSize } from './engine.js';
 import { AI } from './ai.js';
 import { createOnline, CODE_RE, normalizeCode } from './online.js';
+import qrcode from './vendor/qrcode.js';
 
 /* ==========================================================
    3. INTERFACE — lit l'état, l'affiche, et transmet les gestes.
@@ -672,7 +673,90 @@ function renderNet() {
   else if (v.opponent.ready) { text = 'Adversaire prêt'; cls = 'ok'; }
   else { text = 'Adversaire en train de placer sa flotte'; cls = 'ok'; }
   chip.textContent = text; chip.className = 'chip ' + cls;
-  $('shareBtn').hidden = !!v?.opponent.present;
+  $('shareBtn').hidden = $('qrBtn').hidden = !!v?.opponent.present;
+  if (v?.opponent.present && !$('qrScreen').hidden) $('qrScreen').hidden = true;
+}
+
+/* QR code : afficher le lien d'invitation, ou le scanner avec la caméra. */
+function openQr() {
+  const code = S.online.code, q = qrcode(0, 'M');
+  q.addData(net.shareUrl(code));
+  q.make();
+  $('qrBox').innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true, alt: 'QR code de la partie ' + code });
+  $('qrCodeText').textContent = code;
+  $('qrScreen').hidden = false;
+}
+
+let scan = null;
+const scanMsg = t => { $('scanMsg').textContent = t; };
+function codeFromScan(text) {
+  try { const c = normalizeCode(new URL(text).searchParams.get('partie')); if (CODE_RE.test(c)) return c; } catch {}
+  const c = normalizeCode(text);
+  return CODE_RE.test(c) ? c : null;
+}
+function loadJsQR() {
+  if (self.jsQR) return Promise.resolve();
+  return new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = 'src/vendor/jsQR.js'; s.onload = ok; s.onerror = ko;
+    document.head.appendChild(s);
+  });
+}
+async function openScanner() {
+  closeScanner();
+  $('scanScreen').hidden = false;
+  scanMsg('Visez le QR code affiché par votre adversaire.');
+  if (!navigator.mediaDevices?.getUserMedia) { scanMsg('Ce navigateur ne donne pas accès à la caméra. Tapez le code à la place.'); return; }
+  const session = scan = { stopped: false, stream: null, timer: null };
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    if (session.stopped) { stream.getTracks().forEach(t => t.stop()); return; }
+    session.stream = stream;
+    const video = $('scanVideo');
+    video.srcObject = stream;
+    await video.play();
+    let detect;
+    const native = 'BarcodeDetector' in self && (await BarcodeDetector.getSupportedFormats?.().catch(() => []))?.includes('qr_code');
+    if (native) {
+      const bd = new BarcodeDetector({ formats: ['qr_code'] });
+      detect = async () => (await bd.detect(video))[0]?.rawValue || null;
+    } else {
+      await loadJsQR();
+      const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
+      detect = async () => {
+        const w = video.videoWidth, h = video.videoHeight;
+        if (!w) return null;
+        const k = Math.min(1, 640 / Math.max(w, h));
+        cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+        cx.drawImage(video, 0, 0, cv.width, cv.height);
+        return self.jsQR(cx.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height, { inversionAttempts: 'dontInvert' })?.data || null;
+      };
+    }
+    const loop = async () => {
+      if (session.stopped) return;
+      let text = null;
+      try { text = await detect(); } catch {}
+      const code = text && codeFromScan(text);
+      if (code) { closeScanner(); joinOnline(code); return; }
+      if (text) scanMsg('Ce QR code ne correspond pas à une partie d\'Amiral.');
+      session.timer = setTimeout(loop, 150);
+    };
+    loop();
+  } catch (e) {
+    if (session.stopped) return;
+    scanMsg(e && e.name === 'NotAllowedError'
+      ? 'L\'accès à la caméra a été refusé. Autorisez-le dans les réglages du navigateur, ou tapez le code.'
+      : 'Impossible d\'ouvrir la caméra. Tapez le code à la place.');
+  }
+}
+function closeScanner() {
+  if (scan) {
+    scan.stopped = true; clearTimeout(scan.timer);
+    scan.stream?.getTracks().forEach(t => t.stop());
+    scan = null;
+  }
+  $('scanVideo').srcObject = null;
+  $('scanScreen').hidden = true;
 }
 
 async function copyCode() {
@@ -717,6 +801,15 @@ function wireOnline() {
   });
   $('shareBtn').addEventListener('click', shareInvite);
   $('copyCodeBtn').addEventListener('click', copyCode);
+  $('qrBtn').addEventListener('click', openQr);
+  $('qrClose').addEventListener('click', () => { $('qrScreen').hidden = true; });
+  $('scanBtn').addEventListener('click', openScanner);
+  $('scanClose').addEventListener('click', closeScanner);
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!$('qrScreen').hidden) $('qrScreen').hidden = true;
+    if (!$('scanScreen').hidden) closeScanner();
+  });
   $('leaveBtn').addEventListener('click', () => leaveOnline());
 }
 

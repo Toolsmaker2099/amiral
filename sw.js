@@ -13,6 +13,7 @@ const SHELL = [
   './src/ui.js',
   './src/online.js',
   './src/config.js',
+  './src/vendor/qrcode.js',
   './icons/favicon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
