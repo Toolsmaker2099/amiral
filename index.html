@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Amiral</title>
+<meta name="description" content="Amiral, la bataille navale : placez votre flotte et coulez celle de l'ordinateur.">
+<meta name="theme-color" content="#06131f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@700;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="src/ui.js"></script>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#e2ab45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="20" cy="7" r="3.5"/><path d="M20 10.5V35M12 16h16M6 24c1 6.5 7 11 14 11s13-4.5 14-11M6 24l-2.5 3M6 24l3.5 1.5M34 24l2.5 3M34 24l-3.5 1.5"/>
+      </svg>
+      <div>
+        <h1>Ami<span>ral</span></h1>
+        <small>Touché coulé · Bataille navale</small>
+      </div>
+    </div>
+    <div class="modes" aria-label="Mode de jeu">
+      <span class="on">Solo</span>
+      <span class="off">En ligne · bientôt</span>
+    </div>
+  </header>
+
+  <!-- ===== Placement ===== -->
+  <section id="setup" aria-label="Préparation">
+    <div class="setup-layout">
+      <div class="board-col">
+        <h2>Déployez votre flotte</h2>
+        <p class="hint" id="setupHint" aria-live="polite"></p>
+        <div class="dock plate" id="dock">
+          <div class="dock-head"><h3>Chantier naval</h3><span id="dockCount"></span></div>
+          <div class="dock-ships" id="dockShips"></div>
+        </div>
+        <div class="board plate" id="setupBoard"></div>
+        <div class="toolbar">
+          <button class="btn" id="rotateBtn" type="button">Pivoter le navire</button>
+          <button class="btn" id="randomBtn" type="button">Placement aléatoire</button>
+          <button class="btn" id="clearBtn" type="button">Tout ramener au port</button>
+        </div>
+        <button class="btn primary" id="startBtn" type="button">Lancer la bataille</button>
+      </div>
+      <aside class="panel plate">
+        <fieldset>
+          <legend>Niveau de l'ordinateur</legend>
+          <div class="seg" role="radiogroup">
+            <label><input type="radio" name="level" id="lvl-easy" value="easy">Facile</label>
+            <label><input type="radio" name="level" id="lvl-medium" value="medium">Moyen</label>
+            <label><input type="radio" name="level" id="lvl-hard" value="hard">Difficile</label>
+          </div>
+          <p class="level-desc" id="levelDesc"></p>
+        </fieldset>
+        <fieldset>
+          <legend>Taille de la grille</legend>
+          <div class="seg" role="radiogroup">
+            <label><input type="radio" name="size" id="size-8" value="8">8 × 8</label>
+            <label><input type="radio" name="size" id="size-10" value="10">10 × 10</label>
+            <label><input type="radio" name="size" id="size-12" value="12">12 × 12</label>
+          </div>
+          <p class="level-desc" id="sizeDesc"></p>
+        </fieldset>
+        <fieldset>
+          <legend>Règle</legend>
+          <label class="check"><input type="checkbox" id="replayOpt"><span>Rejouer après un tir réussi<small>Chaque touché donne un tir de plus, pour vous comme pour l'ordinateur.</small></span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Ordres</legend>
+          <ul class="orders">
+            <li><b>Glisser</b> un navire pour le poser ou le déplacer.</li>
+            <li><b>Toucher</b> un navire posé pour le tourner d'un quart de tour (4 directions).</li>
+            <li>Au clavier, <b>R</b> pivote le navire sélectionné.</li>
+          </ul>
+        </fieldset>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== Bataille ===== -->
+  <section id="battle" aria-label="Bataille" hidden>
+    <div class="statusbar plate">
+      <div class="turn">
+        <span class="beacon" id="beacon"></span>
+        <div>
+          <p class="turn-label" id="turnLabel">À vous de tirer</p>
+          <p class="last-msg" id="lastMsg" aria-live="polite"></p>
+        </div>
+      </div>
+      <button class="btn" id="quitBtn" type="button">Nouvelle partie</button>
+    </div>
+    <div class="viewswitch" role="tablist" aria-label="Grille affichée">
+      <button type="button" role="tab" data-v="enemy" id="tabEnemy">Zone de tir</button>
+      <button type="button" role="tab" data-v="mine" id="tabMine">Ma flotte</button>
+    </div>
+    <div class="boards" id="boards" data-view="enemy">
+      <article class="side side-enemy">
+        <div class="side-head"><h2>Eaux ennemies</h2><span class="tag" id="enemyTag"></span></div>
+        <div class="board plate" id="enemyBoard"></div>
+        <ul class="tracker" id="enemyTracker" aria-label="Flotte ennemie"></ul>
+      </article>
+      <article class="side side-mine">
+        <div class="side-head"><h2>Votre flotte</h2><span class="tag" id="myTag"></span></div>
+        <div class="board plate" id="myBoard"></div>
+        <ul class="tracker" id="myTracker" aria-label="Votre flotte"></ul>
+      </article>
+    </div>
+    <section class="logbook plate">
+      <h3>Journal de bord</h3>
+      <ol id="log"></ol>
+    </section>
+  </section>
+
+  <div class="overlay" id="endScreen" hidden>
+    <div class="card plate" id="endCard" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+      <h2 id="endTitle">Victoire</h2>
+      <p id="endText"></p>
+      <dl class="stats">
+        <div><dt>Tirs</dt><dd id="stShots">0</dd></div>
+        <div><dt>Touchés</dt><dd id="stHits">0</dd></div>
+        <div><dt>Précision</dt><dd id="stAcc">0 %</dd></div>
+      </dl>
+      <div class="actions">
+        <button class="btn primary" id="againBtn" type="button">Rejouer</button>
+        <button class="btn" id="viewBtn" type="button">Voir les grilles</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
