@@ -25,9 +25,9 @@ puis ouvrir http://localhost:8000. (Ouvrir `index.html` directement depuis le di
 
 ## Mettre en ligne avec GitHub Pages
 
-Dans le dépôt GitHub : **Settings → Pages → Build and deployment**, source « Deploy from a branch », branche `main`, dossier `/ (root)`. Le jeu est alors publié à l'adresse `https://<compte>.github.io/amiral/`.
+GitHub Pages publie la branche `main` (dossier racine) : chaque push sur `main` met le jeu en ligne automatiquement, à l'adresse https://toolsmaker2099.github.io/amiral/.
 
-À chaque nouvelle version, changez `VERSION` dans `sw.js` pour que les joueurs reçoivent la mise à jour.
+Le service worker charge toujours les fichiers du jeu depuis le réseau quand c'est possible, donc les joueurs reçoivent chaque nouvelle version sans rien faire ; le cache ne sert que hors ligne.
 
 ## Organisation du code
 

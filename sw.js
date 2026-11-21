@@ -1,6 +1,7 @@
 // Service worker d'Amiral : garde le jeu en cache pour jouer hors ligne.
-// Changer VERSION à chaque mise en ligne pour que les joueurs reçoivent la nouvelle version.
-const VERSION = 'amiral-v1';
+// Les fichiers du jeu passent toujours par le réseau d'abord : chaque déploiement
+// sur main arrive donc tout seul chez les joueurs, le cache ne sert que hors ligne.
+const VERSION = 'amiral-v2';
 const SHELL = [
   './',
   './index.html',
@@ -41,19 +42,22 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Fichiers du jeu et polices Google : le cache d'abord, mis à jour en arrière-plan.
-  const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
-  if (url.origin === location.origin || isFont) {
+  // Fichiers du jeu : le réseau d'abord, le cache hors ligne.
+  if (url.origin === location.origin) {
     event.respondWith(
-      caches.match(req).then(cached => {
-        const network = fetch(req)
-          .then(res => {
-            if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
-            return res;
-          })
-          .catch(() => cached);
-        return cached || network;
-      })
+      fetch(req)
+        .then(res => { if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); } return res; })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Polices Google : le cache d'abord, elles ne changent pas.
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    event.respondWith(
+      caches.match(req).then(cached => cached || fetch(req).then(res => {
+        const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); return res;
+      }))
     );
   }
 });
