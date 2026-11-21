@@ -432,10 +432,14 @@ function renderBattle() {
     $('endText').textContent = (win
       ? `Toute la flotte ${online ? 'adverse' : 'ennemie'} est par le fond, en ${st.shots} tirs.`
       : `${online ? 'Votre adversaire' : 'L\'ordinateur'} a coulé vos cinq navires en ${m.stats[1].shots} tirs. Ses navires restants sont dévoilés sur la grille.`)
-      + (online && v?.opponent.rematch && !v.me.rematch ? ' Votre adversaire propose une revanche.' : '');
+      + (online && v?.me.rematch && !v.opponent.rematch ? ' En attente de la réponse de votre adversaire.' : '');
+    const invited = online && !!v?.opponent.rematch && !v.me.rematch;
+    $('rematchCall').hidden = !invited;
+    $('endCard').classList.toggle('invited', invited);
     const again = $('againBtn');
-    again.textContent = online ? (v?.me.rematch ? 'Revanche demandée…' : 'Revanche') : 'Rejouer';
+    again.textContent = online ? (v?.me.rematch ? 'Revanche demandée…' : invited ? 'Accepter la revanche' : 'Revanche') : 'Rejouer';
     again.disabled = online && !!v?.me.rematch;
+    again.classList.toggle('pulse', invited);
     $('stShots').textContent = st.shots;
     $('stHits').textContent = st.hits;
     $('stAcc').textContent = pct(st);
@@ -645,12 +649,36 @@ function onServerState(v) {
     window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
     return;
   }
+  if (v.phase === 'over' && v.opponent.rematch && !v.me.rematch && !(prev && prev.opponent.rematch)) {
+    // L'adversaire propose une revanche : on rouvre l'écran de fin et on prévient le joueur.
+    S.endDismissed = false;
+    alertRematch();
+  }
   if (v.last && v.last.seq !== S.seenSeq) {
     S.seenSeq = v.last.seq;
     resolveShot({ shooter: v.last.mine ? 0 : 1, r: v.last.r, c: v.last.c, result: v.last.result, ship: v.last.ship });
     return;
   }
   render();
+}
+
+let audioCtx = null;
+function alertRematch() {
+  try { navigator.vibrate?.([140, 90, 140, 90, 220]); } catch {}
+  try {
+    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t0 = audioCtx.currentTime;
+    [523.25, 659.25, 783.99].forEach((f, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      const t = t0 + i * 0.14;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+      o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t + 0.5);
+    });
+  } catch {}
 }
 
 function lobbyMsg(t) { $('lobbyMsg').textContent = t; }
