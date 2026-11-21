@@ -729,7 +729,9 @@ start({});
 
 // Hors ligne : le service worker garde le jeu en cache.
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+  });
 }
 
 // Exposé pour le débogage dans la console.

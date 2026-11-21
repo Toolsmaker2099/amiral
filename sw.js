@@ -1,6 +1,7 @@
 // Service worker d'Amiral : garde le jeu en cache pour jouer hors ligne.
-// Les fichiers du jeu passent toujours par le réseau d'abord : chaque déploiement
-// sur main arrive donc tout seul chez les joueurs, le cache ne sert que hors ligne.
+// Mise à jour silencieuse : à chaque ouverture, les fichiers du jeu sont revalidés
+// auprès du serveur (sans attendre le cache HTTP de GitHub Pages) ; le cache ne sert
+// que hors ligne. Aucun message n'est jamais affiché au joueur.
 const VERSION = 'amiral-v3';
 const SHELL = [
   './',
@@ -37,7 +38,7 @@ self.addEventListener('fetch', event => {
   // Pages : le réseau d'abord, le cache si on est hors ligne.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-cache' })
         .then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put('./index.html', copy)); return res; })
         .catch(() => caches.match('./index.html'))
     );
@@ -47,7 +48,7 @@ self.addEventListener('fetch', event => {
   // Fichiers du jeu : le réseau d'abord, le cache hors ligne.
   if (url.origin === location.origin) {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-cache' })
         .then(res => { if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); } return res; })
         .catch(() => caches.match(req))
     );
