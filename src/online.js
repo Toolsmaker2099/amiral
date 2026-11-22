@@ -63,12 +63,18 @@ export function createOnline({ onState, onError, onStatus }) {
     open();
   }
 
+  function send(m) { if (net && net.ws && net.ws.readyState === 1) { net.ws.send(JSON.stringify(m)); return true; } return false; }
+
   function stop() {
     if (!net) return;
     net.stopped = true; clearTimeout(net.timer);
     try { net.ws && net.ws.close(1000); } catch {}
     net = null;
   }
+
+  // Réseau coupé : on ferme proprement pour que l'adversaire soit prévenu, puis on se reconnecte au retour du réseau.
+  window.addEventListener('offline', () => { if (net && net.ws && net.ws.readyState <= 1) try { net.ws.close(4010); } catch {} });
+  window.addEventListener('online', () => { if (net && !net.stopped && (!net.ws || net.ws.readyState > 1)) { clearTimeout(net.timer); net.retry = 0; open(); } });
 
   // Revient au premier plan (téléphone sorti de veille) : reconnecte tout de suite.
   document.addEventListener('visibilitychange', () => {
@@ -90,8 +96,10 @@ export function createOnline({ onState, onError, onStatus }) {
     },
     join(code) { connect(code, session.tokenFor(code) || randomToken()); },
     resume() { const s = session.saved(); if (s && CODE_RE.test(s.code)) { connect(s.code, s.token); return s.code; } return null; },
-    send(m) { if (net && net.ws && net.ws.readyState === 1) { net.ws.send(JSON.stringify(m)); return true; } return false; },
-    leave() { stop(); session.clear(); },
+    send,
+    leave() { if (net) send({ t: 'leave' }); stop(); session.clear(); },
+    // Reste connecté en arrière-plan (pour être prévenu d'une revanche) sans reprendre la partie à la réouverture.
+    background(on) { if (!net) return; if (on) session.clear(); else session.save(net.code, net.token); },
     shareUrl(code) { return location.origin + location.pathname + '?partie=' + code; },
   };
 }

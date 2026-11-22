@@ -5,7 +5,7 @@ import { SIZES, validateFleet, fire } from './rules.js';
 
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // une partie inactive disparaît après 24 h
 
-const newSeat = token => ({ token: token || null, ships: null, shots: [], ready: false, rematch: false, stats: { shots: 0, hits: 0 } });
+const newSeat = token => ({ token: token || null, ships: null, shots: [], ready: false, rematch: false, left: false, away: false, stats: { shots: 0, hits: 0 } });
 
 export class GameRoom extends DurableObject {
   constructor(ctx, env) {
@@ -35,7 +35,7 @@ export class GameRoom extends DurableObject {
         code: b.code,
         size: SIZES.includes(b.size) ? b.size : 10,
         replayOnHit: b.replayOnHit !== false,
-        phase: 'lobby', turn: 0, winner: null, starter: null, round: 0, seq: 0, last: null,
+        phase: 'lobby', turn: 0, winner: null, forfeit: null, starter: null, round: 0, seq: 0, last: null,
         seats: [newSeat(token), newSeat(null)],
       };
       await this.save();
@@ -59,9 +59,10 @@ export class GameRoom extends DurableObject {
       code: st.code, seat, phase: st.phase, size: st.size, replayOnHit: st.replayOnHit,
       myTurn: st.phase === 'battle' && st.turn === seat,
       youWon: over ? st.winner === seat : null,
+      forfeit: st.forfeit == null ? null : st.forfeit === seat ? 'me' : 'opponent',
       round: st.round,
-      opponent: { present: !!op.token, connected: this.connected(1 - seat), ready: op.ready, rematch: op.rematch },
-      me: { ready: me.ready, rematch: me.rematch, ships: me.ships, shots: me.shots.length ? me.shots : blank() },
+      opponent: { present: !!op.token, connected: this.connected(1 - seat), ready: op.ready, rematch: op.rematch, left: !!op.left, away: !!op.away },
+      me: { ready: me.ready, rematch: me.rematch, away: !!me.away, ships: me.ships, shots: me.shots.length ? me.shots : blank() },
       enemy: {
         shots: op.shots.length ? op.shots : blank(),
         // Seuls les navires coulés sont dévoilés, sauf en fin de partie.
@@ -87,8 +88,8 @@ export class GameRoom extends DurableObject {
     const st = this.st;
     st.phase = 'battle';
     st.turn = st.starter ?? (Math.random() < .5 ? 0 : 1);
-    st.round = 0; st.winner = null; st.last = null;
-    for (const s of st.seats) { s.stats = { shots: 0, hits: 0 }; s.rematch = false; }
+    st.round = 0; st.winner = null; st.last = null; st.forfeit = null;
+    for (const s of st.seats) { s.stats = { shots: 0, hits: 0 }; s.rematch = false; s.away = false; }
   }
 
   async webSocketMessage(ws, raw) {
@@ -109,6 +110,7 @@ export class GameRoom extends DurableObject {
       }
       // Une seule connexion par joueur : la plus récente remplace l'ancienne.
       for (const o of this.ctx.getWebSockets()) if (o !== ws && this.seatOf(o) === seat) try { o.close(4001, 'replaced'); } catch {}
+      st.seats[seat].left = false; st.seats[seat].away = false;
       ws.serializeAttachment({ seat });
       await this.save();
       return this.broadcast();
@@ -143,13 +145,23 @@ export class GameRoom extends DurableObject {
         else if (!(res.result !== 'miss' && st.replayOnHit)) st.turn = 1 - seat;
         break;
       }
-      case 'rematch':
+      case 'leave':
+        // Le joueur quitte la partie pour de bon. En pleine bataille, c'est un abandon.
+        me.left = true; me.rematch = false; me.ready = false;
+        if (st.phase === 'battle') { st.phase = 'over'; st.winner = 1 - seat; st.forfeit = seat; }
+        break;
+      case 'away':
+        // Le joueur est revenu à l'accueil après la partie, mais il sera prévenu d'une revanche.
         if (st.phase !== 'over') return;
-        me.rematch = true;
+        me.away = true;
+        break;
+      case 'rematch':
+        if (st.phase !== 'over' || op.left) return;
+        me.rematch = true; me.away = false;
         if (op.rematch) {
           st.starter = 1 - st.winner; // le perdant commence la revanche
-          st.phase = 'placing'; st.winner = null; st.last = null; st.round = 0;
-          for (const s of st.seats) { s.ships = null; s.shots = []; s.ready = false; s.rematch = false; }
+          st.phase = 'placing'; st.winner = null; st.last = null; st.round = 0; st.forfeit = null;
+          for (const s of st.seats) { s.ships = null; s.shots = []; s.ready = false; s.rematch = false; s.away = false; }
         }
         break;
       default:

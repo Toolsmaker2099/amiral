@@ -180,6 +180,14 @@
     </div>
   </div>
 
+  <div class="toast plate" id="toast" role="alert" hidden>
+    <span class="toast-dot" aria-hidden="true"></span>
+    <div class="toast-body"><b id="toastTitle"></b><small id="toastText"></small>
+      <div class="toast-actions" id="toastActions"></div>
+    </div>
+    <button class="toast-close" id="toastClose" type="button" aria-label="Fermer">×</button>
+  </div>
+
   <div class="overlay" id="endScreen" hidden>
     <div class="card plate" id="endCard" role="dialog" aria-modal="true" aria-labelledby="endTitle">
       <h2 id="endTitle">Victoire</h2>
@@ -196,7 +204,9 @@
       <div class="actions">
         <button class="btn primary" id="againBtn" type="button">Rejouer</button>
         <button class="btn" id="viewBtn" type="button">Voir les grilles</button>
+        <button class="btn" id="endQuitBtn" type="button" hidden>Quitter la partie</button>
       </div>
+      <p class="end-note" id="endNote" hidden></p>
     </div>
   </div>
 </div>

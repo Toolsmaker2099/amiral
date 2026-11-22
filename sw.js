@@ -2,7 +2,7 @@
 // Mise à jour silencieuse : à chaque ouverture, les fichiers du jeu sont revalidés
 // auprès du serveur (sans attendre le cache HTTP de GitHub Pages) ; le cache ne sert
 // que hors ligne. Aucun message n'est jamais affiché au joueur.
-const VERSION = 'amiral-v4';
+const VERSION = 'amiral-v5';
 const SHELL = [
   './',
   './index.html',

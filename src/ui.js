@@ -420,7 +420,7 @@ function renderBattle() {
 
 
   const qb = $('quitBtn');
-  qb.textContent = quitArmed ? (online ? 'Confirmer : quitter' : 'Confirmer l\'abandon') : online ? 'Quitter' : 'Nouvelle partie';
+  qb.textContent = quitArmed ? 'Confirmer l\'abandon' : online ? 'Quitter' : 'Nouvelle partie';
   qb.classList.toggle('danger', !!quitArmed);
 
   const endShown = over && !S.endDismissed && !endPending;
@@ -429,17 +429,26 @@ function renderBattle() {
     const win = m.winner === 0, st = m.stats[0];
     $('endCard').className = 'card plate ' + (win ? 'win' : 'lose');
     $('endTitle').textContent = win ? 'Victoire' : 'Défaite';
-    $('endText').textContent = (win
+    $('endText').textContent = online && v?.forfeit === 'opponent'
+      ? 'Votre adversaire a quitté la partie en pleine bataille : la victoire vous revient.'
+      : win
       ? `Toute la flotte ${online ? 'adverse' : 'ennemie'} est par le fond, en ${st.shots} tirs.`
-      : `${online ? 'Votre adversaire' : 'L\'ordinateur'} a coulé vos cinq navires en ${m.stats[1].shots} tirs. Ses navires restants sont dévoilés sur la grille.`)
-      + (online && v?.me.rematch && !v.opponent.rematch ? ' En attente de la réponse de votre adversaire.' : '');
-    const invited = online && !!v?.opponent.rematch && !v.me.rematch;
+      : `${online ? 'Votre adversaire' : 'L\'ordinateur'} a coulé vos cinq navires en ${m.stats[1].shots} tirs. Ses navires restants sont dévoilés sur la grille.`;
+    const op = online ? v?.opponent : null, left = !!op?.left, asked = online && !!v?.me.rematch;
+    const invited = !!op?.rematch && !asked && !left;
     $('rematchCall').hidden = !invited;
     $('endCard').classList.toggle('invited', invited);
+    const note = !online ? ''
+      : left ? 'Votre adversaire a quitté la partie. Plus de revanche possible.'
+      : asked ? 'En attente de la réponse de votre adversaire…'
+      : op?.away ? 'Votre adversaire est revenu à l\'accueil. Il sera prévenu si vous proposez une revanche.'
+      : op && !op.connected ? 'Votre adversaire est déconnecté.' : '';
+    $('endNote').textContent = note; $('endNote').hidden = !note;
     const again = $('againBtn');
-    again.textContent = online ? (v?.me.rematch ? 'Revanche demandée…' : invited ? 'Accepter la revanche' : 'Revanche') : 'Rejouer';
-    again.disabled = online && !!v?.me.rematch;
+    again.textContent = online ? (asked ? 'Revanche demandée…' : invited ? 'Accepter la revanche' : 'Revanche') : 'Rejouer';
+    again.disabled = asked || left;
     again.classList.toggle('pulse', invited);
+    $('endQuitBtn').hidden = !online;
     $('stShots').textContent = st.shots;
     $('stHits').textContent = st.hits;
     $('stAcc').textContent = pct(st);
@@ -547,7 +556,7 @@ function wire() {
 
   $('enemyBoard')._sea.addEventListener('click', e => { const p = cellFrom(e); if (p) onEnemyCell(...p); });
   $('quitBtn').addEventListener('click', () => {
-    if (S.match.phase === 'over' || quitArmed) { clearTimeout(quitArmed); quitArmed = null; return S.mode === 'online' ? leaveOnline() : newGame(); }
+    if (S.match.phase === 'over' || quitArmed) { clearTimeout(quitArmed); quitArmed = null; return S.mode === 'online' ? quitToHome() : newGame(); }
     quitArmed = setTimeout(() => { quitArmed = null; renderBattle(); }, 3000);
     renderBattle();
   });
@@ -558,6 +567,8 @@ function wire() {
   });
   wireOnline();
   $('viewBtn').addEventListener('click', () => { S.endDismissed = true; render(); });
+  $('endQuitBtn').addEventListener('click', () => quitToHome());
+  $('toastClose').addEventListener('click', () => hideToast());
 }
 
 
@@ -568,7 +579,7 @@ const net = Object.assign(createOnline({
   onState: v => onServerState(v),
   onError: e => onServerError(e),
   onStatus: s => { if (S.mode !== 'online') return; S.online.status = s; render(); },
-}), { state: null, firing: false });
+}), { state: null, firing: false, watching: null, bgState: null });
 
 function enterOnline(code) {
   clearTimeout(aiTimer); clearTimeout(viewTimer); clearTimeout(endTimer); endPending = false;
@@ -577,10 +588,10 @@ function enterOnline(code) {
   S.screen = 'setup'; S.match = null; S.setup.selected = null; quitArmed = null;
   render();
 }
-function joinOnline(code) { net.join(code); enterOnline(code); }
+function joinOnline(code) { dropWatch(); net.join(code); enterOnline(code); }
 
 async function createOnlineGame() {
-  const btn = $('createBtn'); btn.disabled = true; lobbyMsg('');
+  const btn = $('createBtn'); btn.disabled = true; lobbyMsg(''); dropWatch();
   try {
     const code = await net.create({ size: S.size, replayOnHit: S.replayOnHit });
     enterOnline(code);
@@ -591,14 +602,115 @@ async function createOnlineGame() {
 
 function leaveOnline(msg) {
   net.leave(); net.state = null;
-  clearTimeout(viewTimer); clearTimeout(endTimer); endPending = false; quitArmed = null;
+  backHome(msg);
+}
+function backHome(msg) {
+  clearTimeout(viewTimer); clearTimeout(endTimer); clearTimeout(dcTimer); endPending = false; quitArmed = null; dcShown = false;
+  hideToast('opp');
   const prev = S; S = freshState(prev);
   if (msg) { S.screen = 'lobby'; render(); lobbyMsg(msg); }
   else render();
   window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
 }
 
+// Quitter après la partie : on revient à l'accueil, mais on reste à l'écoute en arrière-plan
+// pour être prévenu si l'adversaire propose une revanche. Sinon, on quitte pour de bon.
+function quitToHome() {
+  const v = net.state;
+  if (!(v && v.phase === 'over' && v.opponent.present && !v.opponent.left)) return leaveOnline();
+  net.send({ t: 'away' }); net.background(true);
+  net.watching = S.online.code; net.bgState = v; net.state = null;
+  backHome();
+}
+function dropWatch() {
+  if (!net.watching) return;
+  net.watching = null; net.bgState = null;
+  net.leave();
+  hideToast('invite');
+}
+function acceptWatch() {
+  const code = net.watching;
+  if (!code) return;
+  net.watching = null; net.bgState = null;
+  net.background(false);
+  enterOnline(code);
+  net.send({ t: 'rematch' });
+}
+function onBackgroundState(v) {
+  const prev = net.bgState; net.bgState = v;
+  if (v.phase === 'over' && !v.me.away && !v.opponent.left) net.send({ t: 'away' }); // après une reconnexion
+  if (v.opponent.left) {
+    const wasAsking = toastKey === 'invite';
+    dropWatch();
+    if (wasAsking) showToast({ key: 'opp', kind: 'bad', title: 'Votre adversaire a quitté la partie', text: 'La revanche n\'est plus possible.', ms: 5000 });
+    return;
+  }
+  if (v.phase === 'over' && v.opponent.rematch && !v.me.rematch && !prev?.opponent.rematch) {
+    alertRematch();
+    showToast({
+      key: 'invite', kind: 'call', title: 'Votre adversaire propose une revanche !',
+      text: `Partie ${v.code}. Acceptez pour repartir au placement de la flotte.`,
+      actions: [{ label: 'Accepter la revanche', primary: true, fn: acceptWatch }, { label: 'Non merci', fn: dropWatch }],
+    });
+  }
+}
+
+/* Bandeau d'alerte en haut de l'écran (déconnexion, départ, revanche). */
+let toastTimer = null, toastKey = null;
+function showToast({ key, kind, title, text = '', actions = [], ms = 0 }) {
+  clearTimeout(toastTimer); toastKey = key;
+  const t = $('toast');
+  t.className = 'toast plate ' + kind;
+  $('toastTitle').textContent = title; $('toastText').textContent = text;
+  const box = $('toastActions'); box.innerHTML = '';
+  for (const a of actions) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn' + (a.primary ? ' primary' : ''); b.textContent = a.label;
+    b.addEventListener('click', () => { hideToast(); a.fn(); });
+    box.appendChild(b);
+  }
+  t.hidden = true; void t.offsetWidth; t.hidden = false; // relance l'animation d'entrée
+  if (ms) toastTimer = setTimeout(() => hideToast(key), ms);
+}
+function hideToast(key) {
+  if (key && key !== toastKey) return;
+  clearTimeout(toastTimer); toastKey = null;
+  $('toast').hidden = true;
+}
+const buzz = p => { try { navigator.vibrate?.(p); } catch {} };
+
+// Prévient le joueur quand l'adversaire se déconnecte, revient ou quitte la partie.
+let dcTimer = null, dcShown = false;
+function watchOpponent(prev, v) {
+  const was = prev?.opponent, op = v.opponent;
+  if (!was || !was.present) return;
+  if (op.left && !was.left) {
+    clearTimeout(dcTimer); dcShown = false; buzz([200, 100, 200]);
+    showToast({ key: 'opp', kind: 'bad', title: 'Votre adversaire a quitté la partie',
+      text: v.forfeit === 'opponent' ? 'Il a abandonné : la victoire est pour vous.' : v.phase === 'over' ? 'Plus de revanche possible.' : 'Vous pouvez quitter la partie.' });
+    return;
+  }
+  if (was.left && !op.left) { showToast({ key: 'opp', kind: 'ok', title: 'Votre adversaire est revenu dans la partie', ms: 3500 }); return; }
+  if (op.left) return;
+  if (was.connected && !op.connected) {
+    clearTimeout(dcTimer);
+    // Petit délai : une coupure d'une seconde (téléphone qui change de réseau) ne mérite pas d'alerte.
+    dcTimer = setTimeout(() => {
+      const s = net.state;
+      if (S.mode !== 'online' || !s || s.opponent.connected || s.opponent.left) return;
+      dcShown = true; buzz([200, 100, 200]);
+      showToast({ key: 'opp', kind: 'bad', title: 'Votre adversaire s\'est déconnecté',
+        text: s.phase === 'battle' ? 'La partie reprendra dès son retour.' : 'Vous serez prévenu dès son retour.' });
+    }, 2500);
+  }
+  if (!was.connected && op.connected) {
+    clearTimeout(dcTimer);
+    if (dcShown) { dcShown = false; showToast({ key: 'opp', kind: 'ok', title: 'Votre adversaire est de retour', ms: 3500 }); }
+  }
+}
+
 function onServerError(e) {
+  if (net.watching) { dropWatch(); return; }
   if (S.mode !== 'online') return;
   if (e.code === 'fleet') { flashHint('Le serveur a refusé cette flotte. Vérifiez le placement.'); return; }
   const text = e.code === 'full' ? 'Cette partie a déjà deux joueurs.'
@@ -618,10 +730,12 @@ function matchFromServer(v) {
 }
 
 function onServerState(v) {
+  if (net.watching) return onBackgroundState(v);
   if (S.mode !== 'online') return;
   const prev = net.state;
   net.state = v; net.firing = false;
   S.online.status = 'online';
+  watchOpponent(prev, v);
   if (v.size !== SIZE) {
     setSize(v.size);
     if (!S.setup.board.ships.every(s => Engine.shipCells(s).every(([r, c]) => Engine.inBounds(r, c)))) Engine.randomize(S.setup.board);
@@ -811,7 +925,7 @@ function wireOnline() {
     S.screen = 'lobby'; lobbyMsg(''); render();
   });
   $('modeSolo').addEventListener('click', () => {
-    if (S.mode === 'online') return leaveOnline();
+    if (S.mode === 'online') return quitToHome();
     if (S.screen === 'lobby') { S.screen = 'setup'; setSize(S.size); render(); }
   });
   document.querySelectorAll('input[name="osize"]').forEach(inp => inp.addEventListener('change', () => {
