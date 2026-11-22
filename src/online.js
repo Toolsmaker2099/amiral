@@ -10,25 +10,31 @@ const randomToken = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random
 
 // Jeton par partie : dans l'onglet (pour pouvoir jouer à deux onglets sur le même appareil)
 // et sur l'appareil (pour revenir dans la partie après avoir fermé l'appli).
-const session = {
-  tokenFor(code) { try { return sessionStorage.getItem('tc:tok:' + code); } catch { return null; } },
-  save(code, token) {
-    try { sessionStorage.setItem('tc:tok:' + code, token); } catch {}
-    try { localStorage.setItem('tc:online', JSON.stringify({ code, token })); } catch {}
-  },
-  saved() { try { return JSON.parse(localStorage.getItem('tc:online')); } catch { return null; } },
-  clear() { try { localStorage.removeItem('tc:online'); } catch {} },
+// Chaque jeu a son propre emplacement : Amiral garde les clés historiques, les autres jeux ont un suffixe.
+const sessionFor = game => {
+  const sfx = game === 'amiral' ? '' : ':' + game, key = 'tc:online' + sfx;
+  return {
+    tokenFor(code) { try { return sessionStorage.getItem('tc:tok' + sfx + ':' + code); } catch { return null; } },
+    save(code, token) {
+      try { sessionStorage.setItem('tc:tok' + sfx + ':' + code, token); } catch {}
+      try { localStorage.setItem(key, JSON.stringify({ code, token })); } catch {}
+    },
+    saved() { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
+    clear() { try { localStorage.removeItem(key); } catch {} },
+  };
 };
+export const savedOnline = game => sessionFor(game).saved();
 
 export const CODE_RE = /^[A-HJKMNP-Z2-9]{5}$/;
 export const normalizeCode = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-export function createOnline({ onState, onError, onStatus }) {
+export function createOnline({ onState, onError, onStatus, game = 'amiral' }) {
   let net = null;
+  const session = sessionFor(game), base = game === 'amiral' ? 'rooms' : game;
 
   function open() {
     if (!net) return;
-    const ws = new WebSocket(serverUrl().replace(/^http/, 'ws') + '/rooms/' + net.code + '/ws');
+    const ws = new WebSocket(serverUrl().replace(/^http/, 'ws') + '/' + base + '/' + net.code + '/ws');
     net.ws = ws;
     onStatus(net.everConnected ? 'reconnecting' : 'connecting');
     ws.onopen = () => {
@@ -85,7 +91,7 @@ export function createOnline({ onState, onError, onStatus }) {
     get code() { return net?.code || null; },
     async create(opts) {
       const token = randomToken();
-      const res = await fetch(serverUrl() + '/rooms', {
+      const res = await fetch(serverUrl() + '/' + base, {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ ...opts, token }),
       });
@@ -100,6 +106,6 @@ export function createOnline({ onState, onError, onStatus }) {
     leave() { if (net) send({ t: 'leave' }); stop(); session.clear(); },
     // Reste connecté en arrière-plan (pour être prévenu d'une revanche) sans reprendre la partie à la réouverture.
     background(on) { if (!net) return; if (on) session.clear(); else session.save(net.code, net.token); },
-    shareUrl(code) { return location.origin + location.pathname + '?partie=' + code; },
+    shareUrl(code) { return location.origin + location.pathname + '?partie=' + code + (game === 'amiral' ? '' : '&jeu=' + game); },
   };
 }

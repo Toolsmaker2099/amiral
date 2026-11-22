@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Amiral</title>
-<meta name="description" content="Amiral, la bataille navale : placez votre flotte et coulez celle de l'ordinateur.">
+<title>La boîte de jeux</title>
+<meta name="description" content="La boîte de jeux : Amiral (bataille navale) et Morpion, seul contre l'ordinateur ou à distance avec un code.">
 <meta name="theme-color" content="#06131f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
@@ -15,11 +15,48 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@700;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css">
-<script type="module" src="src/ui.js"></script>
+<script type="module" src="src/hub.js"></script>
 </head>
 <body>
-<div class="app">
+<div class="app" id="hub" hidden>
   <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#e2ab45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="14" width="30" height="21" rx="3"/><path d="M5 20h30M14 14V9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5M17 26h6"/>
+      </svg>
+      <div>
+        <h1>La boîte <span>de jeux</span></h1>
+        <small>Choisissez votre jeu</small>
+      </div>
+    </div>
+  </header>
+  <main class="hub-grid" aria-label="Jeux">
+    <button type="button" class="game-card plate" data-game="amiral">
+      <span class="game-art art-amiral" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="12" r="5"/><path d="M32 17v38M21 26h22M10 38c2 10 11 17 22 17s20-7 22-17M10 38l-4 5M10 38l6 2M54 38l4 5M54 38l-6 2"/></svg>
+      </span>
+      <span class="game-name">Amiral</span>
+      <span class="game-desc">Bataille navale. Placez votre flotte et coulez celle de l'adversaire.</span>
+      <span class="game-tags"><i>Solo</i><i>En ligne</i></span>
+    </button>
+    <button type="button" class="game-card plate" data-game="morpion">
+      <span class="game-art art-morpion" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M24 8v48M40 8v48M8 24h48M8 40h48" opacity=".55"/><path d="M11 11l10 10M21 11L11 21" stroke="#e2ab45"/><circle cx="48" cy="48" r="5.5" stroke="#7fd1e8"/></svg>
+      </span>
+      <span class="game-name">Morpion</span>
+      <span class="game-desc">Alignez trois symboles avant votre adversaire.</span>
+      <span class="game-tags"><i>Solo</i><i>En ligne</i></span>
+    </button>
+    <div class="game-card soon" aria-hidden="true">
+      <span class="game-name">D'autres jeux</span>
+      <span class="game-desc">La boîte se remplit petit à petit.</span>
+    </div>
+  </main>
+</div>
+
+<div class="app" id="gameAmiral" hidden>
+  <header class="top">
+    <button type="button" class="back-btn" id="hubBtn" aria-label="Retour à la boîte de jeux">‹ Jeux</button>
     <div class="brand">
       <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#e2ab45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="20" cy="7" r="3.5"/><path d="M20 10.5V35M12 16h16M6 24c1 6.5 7 11 14 11s13-4.5 14-11M6 24l-2.5 3M6 24l3.5 1.5M34 24l2.5 3M34 24l-3.5 1.5"/>
@@ -161,33 +198,6 @@
     </div>
   </section>
 
-  <div class="overlay" id="qrScreen" hidden>
-    <div class="card plate qr-card" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
-      <h2 id="qrTitle">Rejoindre la partie</h2>
-      <p>Votre adversaire scanne ce QR code avec l'appareil photo de son téléphone, ou depuis Amiral avec « Scanner un QR code ».</p>
-      <div class="qr-box" id="qrBox"></div>
-      <p class="qr-code" id="qrCodeText"></p>
-      <button class="btn primary" id="qrClose" type="button">Fermer</button>
-    </div>
-  </div>
-
-  <div class="overlay" id="scanScreen" hidden>
-    <div class="card plate scan-card" role="dialog" aria-modal="true" aria-labelledby="scanTitle">
-      <h2 id="scanTitle">Scanner un QR code</h2>
-      <div class="scan-view"><video id="scanVideo" playsinline muted></video><span class="scan-frame" aria-hidden="true"></span></div>
-      <p id="scanMsg" aria-live="polite"></p>
-      <button class="btn" id="scanClose" type="button">Annuler</button>
-    </div>
-  </div>
-
-  <div class="toast plate" id="toast" role="alert" hidden>
-    <span class="toast-dot" aria-hidden="true"></span>
-    <div class="toast-body"><b id="toastTitle"></b><small id="toastText"></small>
-      <div class="toast-actions" id="toastActions"></div>
-    </div>
-    <button class="toast-close" id="toastClose" type="button" aria-label="Fermer">×</button>
-  </div>
-
   <div class="overlay" id="endScreen" hidden>
     <div class="card plate" id="endCard" role="dialog" aria-modal="true" aria-labelledby="endTitle">
       <h2 id="endTitle">Victoire</h2>
@@ -210,5 +220,34 @@
     </div>
   </div>
 </div>
+
+<div class="app" id="gameMorpion" hidden></div>
+
+  <div class="overlay" id="qrScreen" hidden>
+    <div class="card plate qr-card" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
+      <h2 id="qrTitle">Rejoindre la partie</h2>
+      <p>Votre adversaire scanne ce QR code avec l'appareil photo de son téléphone, ou depuis La boîte de jeux avec « Scanner un QR code ».</p>
+      <div class="qr-box" id="qrBox"></div>
+      <p class="qr-code" id="qrCodeText"></p>
+      <button class="btn primary" id="qrClose" type="button">Fermer</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="scanScreen" hidden>
+    <div class="card plate scan-card" role="dialog" aria-modal="true" aria-labelledby="scanTitle">
+      <h2 id="scanTitle">Scanner un QR code</h2>
+      <div class="scan-view"><video id="scanVideo" playsinline muted></video><span class="scan-frame" aria-hidden="true"></span></div>
+      <p id="scanMsg" aria-live="polite"></p>
+      <button class="btn" id="scanClose" type="button">Annuler</button>
+    </div>
+  </div>
+
+  <div class="toast plate" id="toast" role="alert" hidden>
+    <span class="toast-dot" aria-hidden="true"></span>
+    <div class="toast-body"><b id="toastTitle"></b><small id="toastText"></small>
+      <div class="toast-actions" id="toastActions"></div>
+    </div>
+    <button class="toast-close" id="toastClose" type="button" aria-label="Fermer">×</button>
+  </div>
 </body>
 </html>

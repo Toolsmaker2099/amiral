@@ -1,7 +1,8 @@
 import { SIZE, SIZES, LETTERS, FLEET, coord, Engine, Match, setGridSize } from './engine.js';
 import { AI } from './ai.js';
 import { createOnline, CODE_RE, normalizeCode } from './online.js';
-import qrcode from './vendor/qrcode.js';
+import { showToast, hideToast, toastKeyNow, buzz, alertRematch } from './notify.js';
+import { openQr, closeQr, openScanner, closeScanner, copyCode, shareInvite } from './share.js';
 
 /* ==========================================================
    3. INTERFACE — lit l'état, l'affiche, et transmet les gestes.
@@ -568,7 +569,6 @@ function wire() {
   wireOnline();
   $('viewBtn').addEventListener('click', () => { S.endDismissed = true; render(); });
   $('endQuitBtn').addEventListener('click', () => quitToHome());
-  $('toastClose').addEventListener('click', () => hideToast());
 }
 
 
@@ -633,6 +633,7 @@ function acceptWatch() {
   if (!code) return;
   net.watching = null; net.bgState = null;
   net.background(false);
+  window.dispatchEvent(new CustomEvent('tc:open', { detail: 'amiral' }));
   enterOnline(code);
   net.send({ t: 'rematch' });
 }
@@ -640,7 +641,7 @@ function onBackgroundState(v) {
   const prev = net.bgState; net.bgState = v;
   if (v.phase === 'over' && !v.me.away && !v.opponent.left) net.send({ t: 'away' }); // après une reconnexion
   if (v.opponent.left) {
-    const wasAsking = toastKey === 'invite';
+    const wasAsking = toastKeyNow() === 'invite';
     dropWatch();
     if (wasAsking) showToast({ key: 'opp', kind: 'bad', title: 'Votre adversaire a quitté la partie', text: 'La revanche n\'est plus possible.', ms: 5000 });
     return;
@@ -654,30 +655,6 @@ function onBackgroundState(v) {
     });
   }
 }
-
-/* Bandeau d'alerte en haut de l'écran (déconnexion, départ, revanche). */
-let toastTimer = null, toastKey = null;
-function showToast({ key, kind, title, text = '', actions = [], ms = 0 }) {
-  clearTimeout(toastTimer); toastKey = key;
-  const t = $('toast');
-  t.className = 'toast plate ' + kind;
-  $('toastTitle').textContent = title; $('toastText').textContent = text;
-  const box = $('toastActions'); box.innerHTML = '';
-  for (const a of actions) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'btn' + (a.primary ? ' primary' : ''); b.textContent = a.label;
-    b.addEventListener('click', () => { hideToast(); a.fn(); });
-    box.appendChild(b);
-  }
-  t.hidden = true; void t.offsetWidth; t.hidden = false; // relance l'animation d'entrée
-  if (ms) toastTimer = setTimeout(() => hideToast(key), ms);
-}
-function hideToast(key) {
-  if (key && key !== toastKey) return;
-  clearTimeout(toastTimer); toastKey = null;
-  $('toast').hidden = true;
-}
-const buzz = p => { try { navigator.vibrate?.(p); } catch {} };
 
 // Prévient le joueur quand l'adversaire se déconnecte, revient ou quitte la partie.
 let dcTimer = null, dcShown = false;
@@ -776,25 +753,6 @@ function onServerState(v) {
   render();
 }
 
-let audioCtx = null;
-function alertRematch() {
-  try { navigator.vibrate?.([140, 90, 140, 90, 220]); } catch {}
-  try {
-    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const t0 = audioCtx.currentTime;
-    [523.25, 659.25, 783.99].forEach((f, i) => {
-      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.type = 'triangle'; o.frequency.value = f;
-      const t = t0 + i * 0.14;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
-      o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t + 0.5);
-    });
-  } catch {}
-}
-
 function lobbyMsg(t) { $('lobbyMsg').textContent = t; }
 function renderLobby() {
   for (const n of [8, 10, 12]) $('osize-' + n).checked = S.size === n;
@@ -816,106 +774,7 @@ function renderNet() {
   else { text = 'Adversaire en train de placer sa flotte'; cls = 'ok'; }
   chip.textContent = text; chip.className = 'chip ' + cls;
   $('shareBtn').hidden = $('qrBtn').hidden = !!v?.opponent.present;
-  if (v?.opponent.present && !$('qrScreen').hidden) $('qrScreen').hidden = true;
-}
-
-/* QR code : afficher le lien d'invitation, ou le scanner avec la caméra. */
-function openQr() {
-  const code = S.online.code, q = qrcode(0, 'M');
-  q.addData(net.shareUrl(code));
-  q.make();
-  $('qrBox').innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true, alt: 'QR code de la partie ' + code });
-  $('qrCodeText').textContent = code;
-  $('qrScreen').hidden = false;
-}
-
-let scan = null;
-const scanMsg = t => { $('scanMsg').textContent = t; };
-function codeFromScan(text) {
-  try { const c = normalizeCode(new URL(text).searchParams.get('partie')); if (CODE_RE.test(c)) return c; } catch {}
-  const c = normalizeCode(text);
-  return CODE_RE.test(c) ? c : null;
-}
-function loadJsQR() {
-  if (self.jsQR) return Promise.resolve();
-  return new Promise((ok, ko) => {
-    const s = document.createElement('script');
-    s.src = 'src/vendor/jsQR.js'; s.onload = ok; s.onerror = ko;
-    document.head.appendChild(s);
-  });
-}
-async function openScanner() {
-  closeScanner();
-  $('scanScreen').hidden = false;
-  scanMsg('Visez le QR code affiché par votre adversaire.');
-  if (!navigator.mediaDevices?.getUserMedia) { scanMsg('Ce navigateur ne donne pas accès à la caméra. Tapez le code à la place.'); return; }
-  const session = scan = { stopped: false, stream: null, timer: null };
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-    if (session.stopped) { stream.getTracks().forEach(t => t.stop()); return; }
-    session.stream = stream;
-    const video = $('scanVideo');
-    video.srcObject = stream;
-    await video.play();
-    let detect;
-    const native = 'BarcodeDetector' in self && (await BarcodeDetector.getSupportedFormats?.().catch(() => []))?.includes('qr_code');
-    if (native) {
-      const bd = new BarcodeDetector({ formats: ['qr_code'] });
-      detect = async () => (await bd.detect(video))[0]?.rawValue || null;
-    } else {
-      await loadJsQR();
-      const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
-      detect = async () => {
-        const w = video.videoWidth, h = video.videoHeight;
-        if (!w) return null;
-        const k = Math.min(1, 640 / Math.max(w, h));
-        cv.width = Math.round(w * k); cv.height = Math.round(h * k);
-        cx.drawImage(video, 0, 0, cv.width, cv.height);
-        return self.jsQR(cx.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height, { inversionAttempts: 'dontInvert' })?.data || null;
-      };
-    }
-    const loop = async () => {
-      if (session.stopped) return;
-      let text = null;
-      try { text = await detect(); } catch {}
-      const code = text && codeFromScan(text);
-      if (code) { closeScanner(); joinOnline(code); return; }
-      if (text) scanMsg('Ce QR code ne correspond pas à une partie d\'Amiral.');
-      session.timer = setTimeout(loop, 150);
-    };
-    loop();
-  } catch (e) {
-    if (session.stopped) return;
-    scanMsg(e && e.name === 'NotAllowedError'
-      ? 'L\'accès à la caméra a été refusé. Autorisez-le dans les réglages du navigateur, ou tapez le code.'
-      : 'Impossible d\'ouvrir la caméra. Tapez le code à la place.');
-  }
-}
-function closeScanner() {
-  if (scan) {
-    scan.stopped = true; clearTimeout(scan.timer);
-    scan.stream?.getTracks().forEach(t => t.stop());
-    scan = null;
-  }
-  $('scanVideo').srcObject = null;
-  $('scanScreen').hidden = true;
-}
-
-async function copyCode() {
-  const btn = $('copyCodeBtn');
-  try { await navigator.clipboard.writeText(S.online.code); btn.textContent = 'Code copié'; }
-  catch { const sel = getSelection(), r = document.createRange(); r.selectNodeContents($('netCode')); sel.removeAllRanges(); sel.addRange(r); btn.textContent = 'Code sélectionné'; }
-  btn.classList.add('done');
-  setTimeout(() => { btn.textContent = 'Copier le code'; btn.classList.remove('done'); }, 2000);
-}
-
-async function shareInvite() {
-  const code = S.online.code, url = net.shareUrl(code);
-  const text = `Rejoins-moi sur Amiral, la bataille navale. Code de la partie : ${code}`;
-  if (navigator.share) { try { await navigator.share({ title: 'Amiral', text, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
-  try { await navigator.clipboard.writeText(`${text}\n${url}`); $('shareBtn').textContent = 'Lien copié'; }
-  catch { const sel = getSelection(); const r = document.createRange(); r.selectNodeContents($('netCode')); sel.removeAllRanges(); sel.addRange(r); $('shareBtn').textContent = 'Code sélectionné'; }
-  setTimeout(() => { $('shareBtn').textContent = 'Envoyer le lien'; }, 2200);
+  if (v?.opponent.present) closeQr();
 }
 
 function wireOnline() {
@@ -941,18 +800,18 @@ function wireOnline() {
     if (!CODE_RE.test(code)) { lobbyMsg('Le code fait 5 caractères, par exemple K7QPM.'); return; }
     joinOnline(code);
   });
-  $('shareBtn').addEventListener('click', shareInvite);
-  $('copyCodeBtn').addEventListener('click', copyCode);
-  $('qrBtn').addEventListener('click', openQr);
-  $('qrClose').addEventListener('click', () => { $('qrScreen').hidden = true; });
-  $('scanBtn').addEventListener('click', openScanner);
-  $('scanClose').addEventListener('click', closeScanner);
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if (!$('qrScreen').hidden) $('qrScreen').hidden = true;
-    if (!$('scanScreen').hidden) closeScanner();
-  });
+  $('shareBtn').addEventListener('click', () => shareInvite($('shareBtn'), S.online.code, net.shareUrl(S.online.code), 'Amiral', $('netCode')));
+  $('copyCodeBtn').addEventListener('click', () => copyCode($('copyCodeBtn'), S.online.code, $('netCode')));
+  $('qrBtn').addEventListener('click', () => openQr(S.online.code, net.shareUrl(S.online.code)));
+  $('scanBtn').addEventListener('click', () => openScanner(joinOnline, 'amiral'));
   $('leaveBtn').addEventListener('click', () => leaveOnline());
+  $('hubBtn').addEventListener('click', () => {
+    const inBattle = S.screen === 'battle' && S.match?.phase === 'battle';
+    const go = () => { if (S.mode === 'online') quitToHome(); else newGame(); window.dispatchEvent(new CustomEvent('tc:open', { detail: 'hub' })); };
+    if (!inBattle) return go();
+    showToast({ key: 'leave', kind: 'bad', title: 'Quitter la partie en cours ?', text: S.mode === 'online' ? 'Votre adversaire gagnera par abandon.' : 'La partie sera perdue.',
+      actions: [{ label: 'Quitter', primary: true, fn: () => { if (S.mode === 'online') leaveOnline(); else newGame(); window.dispatchEvent(new CustomEvent('tc:open', { detail: 'hub' })); } }, { label: 'Rester', fn: () => {} }], ms: 6000 });
+  });
 }
 
 function start(data) {
@@ -964,19 +823,12 @@ function start(data) {
   const params = new URLSearchParams(location.search);
   const invited = normalizeCode(params.get('partie'));
   if (params.has('partie')) history.replaceState(null, '', location.pathname + location.hash);
-  if (CODE_RE.test(invited)) joinOnline(invited);
-  else { const code = net.resume(); if (code) enterOnline(code); }
+  if (CODE_RE.test(invited) && (params.get('jeu') || 'amiral') === 'amiral') joinOnline(invited);
+  else if (!params.has('partie')) { const code = net.resume(); if (code) enterOnline(code); }
   if (S.screen === 'battle' && S.match.phase === 'battle' && S.match.turn === 1) { view = 'mine'; render(); scheduleAI(); }
 }
 
 start({});
-
-// Hors ligne : le service worker garde le jeu en cache.
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
-  });
-}
 
 // Exposé pour le débogage dans la console.
 window.TC = { Engine, Match, AI, FLEET, size: () => SIZE, state: () => S };
