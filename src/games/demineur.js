@@ -19,11 +19,11 @@ export default {
     let G = null, timer = null, flagMode = false, face = 'play', cells = [], press = null;
     host.innerHTML = `
     <div class="w95 mine-win">
-      <div class="w95-menu" data-r="menu">${Object.entries(LEVELS).map(([k, l]) => `<button type="button" data-lvl="${k}">${l.label}</button>`).join('')}<button type="button" data-r="flagmode" aria-pressed="false" title="Drapeau au toucher">🚩 Mode drapeau</button></div>
+      <div class="w95-menu" data-r="menu">${Object.entries(LEVELS).map(([k, l]) => `<button type="button" data-lvl="${k}">${l.label}</button>`).join('')}</div>
       <div class="w95-body">
         <div class="mine-panel bevel-in">
           <div class="led" data-r="mines">010</div>
-          <button type="button" class="face bevel-out" data-r="face" aria-label="Nouvelle partie">🙂</button>
+          <div class="face-group"><button type="button" class="face bevel-out" data-r="face" aria-label="Nouvelle partie">🙂</button><button type="button" class="flagbtn bevel-out" data-r="flagmode" aria-pressed="false" aria-label="Mode drapeau" title="Mode drapeau : un appui pose un drapeau">🚩</button></div>
           <div class="led" data-r="time">000</div>
         </div>
         <div class="mine-scroll"><div class="mine-grid bevel-in" data-r="grid" role="grid" aria-label="Champ de mines"></div></div>
