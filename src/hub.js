@@ -47,11 +47,11 @@ const CARDS = [
   { id: 'demineur', desc: 'Le classique de Windows : devinez où sont les mines.', art: `
     <rect width="240" height="120" fill="#008080"/><rect x="50" y="8" width="140" height="104" fill="#c0c0c0" stroke="#fff" stroke-width="3"/>
     ${Array.from({ length: 5 }, (_, r) => Array.from({ length: 8 }, (_, c) => { const v = [['', '', '1', 'm', '1', '', '', ''], ['', '', '1', '1', '1', '', '', ''], ['1', '1', '', '', '', '1', '1', '1'], ['f', '2', '1', '', '', '1', 'm', '1'], ['f', 'f', '1', '', '', '1', '1', '1']][r][c]; const x = 58 + c * 16.5, y = 16 + r * 19; const open = v !== '' || (r < 3 && (c < 2 || c > 4)) || (r === 2 || r === 3) && c > 2 && c < 5; return `<rect x="${x}" y="${y}" width="16" height="18" fill="${open ? '#bdbdbd' : '#c0c0c0'}" stroke="${open ? '#808080' : '#fff'}"/>` + (v === 'f' ? `<text x="${x + 8}" y="${y + 13}" font-size="11" text-anchor="middle">🚩</text>` : v === 'm' ? `<text x="${x + 8}" y="${y + 13}" font-size="11" text-anchor="middle">💣</text>` : v ? `<text x="${x + 8}" y="${y + 14}" font-size="13" font-weight="bold" text-anchor="middle" font-family="Arial" fill="${['', '#0000ff', '#008000', '#ff0000'][v]}">${v}</text>` : ''); }).join('')).join('')}` },
-  { id: 'solitaire', desc: 'Klondike comme sur PC : tirez 1 ou 3 cartes, montez les As.', art: `
+  { id: 'solitaire', desc: 'Rangez toutes les cartes par couleur, de l\'As au Roi.', art: `
     <rect width="240" height="120" fill="#008000"/>
     ${[0, 1, 2, 3, 4].map(i => `<rect x="${24 + i * 40}" y="${14 + i * 4}" width="34" height="48" rx="4" fill="#fff" stroke="#000" stroke-opacity=".5"/><text x="${28 + i * 40}" y="${28 + i * 4}" font-size="12" font-weight="bold" font-family="Arial" fill="${i % 2 ? '#d00' : '#111'}">${'A5K93'[i]}${i % 2 ? '♥' : '♠'}</text>`).join('')}
     <rect x="60" y="66" width="34" height="48" rx="4" fill="#1d3fbf" stroke="#fff" stroke-width="2"/><rect x="146" y="66" width="34" height="48" rx="4" fill="#1d3fbf" stroke="#fff" stroke-width="2"/>` },
-  { id: 'freecell', desc: 'Quatre cases libres, huit colonnes, tout est visible. Donnes numérotées.', art: `
+  { id: 'freecell', desc: 'Toutes les cartes sont visibles : à vous de bien les ranger.', art: `
     <rect width="240" height="120" fill="#008000"/>
     ${[0, 1, 2, 3].map(i => `<rect x="${12 + i * 29}" y="8" width="26" height="36" rx="3" fill="none" stroke="#fff" stroke-opacity=".6"/><rect x="${128 + i * 25}" y="8" width="23" height="36" rx="3" fill="none" stroke="#fff" stroke-opacity=".6"/>`).join('')}
     <rect x="41" y="8" width="26" height="36" rx="3" fill="#fff"/><text x="45" y="24" font-size="12" font-weight="bold" font-family="Arial" fill="#d00">Q♦</text>
