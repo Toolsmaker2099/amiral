@@ -682,7 +682,7 @@ body[data-game="memory"] { background: linear-gradient(160deg, #ffe7a3, #ffc4d8 
 .mc:disabled { cursor: default; }
 .mc .face, .mc .back { position: absolute; inset: 0; border-radius: 16px; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform .42s cubic-bezier(.3, 1.3, .5, 1); display: grid; place-items: center; }
 .mc .back { background: radial-gradient(circle at 30% 25%, #ffd0e0 0 14%, transparent 15%), radial-gradient(circle at 70% 70%, #c9b8ff 0 12%, transparent 13%), linear-gradient(145deg, #ff8fab, #ff5d85); border: 3px solid #fff; box-shadow: 0 5px 0 rgba(59, 42, 90, .2); }
-.mc .face { background: #fff; transform: rotateY(180deg); font-size: clamp(1.7rem, 8vw, 2.4rem); border: 3px solid #fff; box-shadow: 0 5px 0 rgba(59, 42, 90, .2); }
+.mc .face { background: #fff; transform: rotateY(180deg); font-size: clamp(2rem, 10vw, 3rem); border: 3px solid #fff; box-shadow: 0 5px 0 rgba(59, 42, 90, .2); }
 .mc.up .back, .mc.match .back { transform: rotateY(180deg); }
 .mc.up .face, .mc.match .face { transform: rotateY(0); }
 .mc:not(:disabled):hover .back { filter: brightness(1.08); }
@@ -781,8 +781,8 @@ body[data-game="demineur"], body[data-game="solitaire"], body[data-game="freecel
 .mine-win { width: max-content; }
 .mine-panel { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 5px 6px; background: #c0c0c0; }
 .led { font-family: "Orbitron", "Courier New", monospace; font-weight: 900; font-size: 26px; line-height: 1; letter-spacing: 2px; color: #f00; background: #000; padding: 3px 5px; border: 2px solid; border-color: #808080 #fff #fff #808080; min-width: 62px; text-align: center; }
-.face { width: 42px; height: 42px; font-size: 24px; line-height: 1; background: #c0c0c0; cursor: pointer; padding: 0; display: grid; place-items: center; }
-.face:active { border-color: #808080; }
+.smiley { width: 42px; height: 42px; font-size: 24px; line-height: 1; background: #c0c0c0; cursor: pointer; padding: 0; display: grid; place-items: center; }
+.smiley:active { border-color: #808080; }
 .mine-scroll { max-width: 100%; overflow-x: auto; touch-action: manipulation; }
 .mine-grid { display: grid; background: #808080; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
 .mc95 { width: var(--cs); height: var(--cs); display: grid; place-items: center; font: 900 calc(var(--cs) * .62)/1 "Courier New", monospace; box-sizing: border-box; cursor: default; }
