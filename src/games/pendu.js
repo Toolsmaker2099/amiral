@@ -3,11 +3,11 @@ import { pendu as rules } from '../../shared/pendu.js';
 
 const KEYS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 // Une erreur = un trait de plus. Le dessin commence vide ; 7 erreurs en solo, 6 en duel.
-const BASE = '<path d="M14 150h104"/>', POST = '<path d="M34 150V12"/>', BEAM = '<path d="M34 12h76M34 36l24-24"/>', ROPE = '<path d="M110 12v20"/>';
+const BASE = '<path d="M14 150h104"/>', POST = '<path d="M34 150V12"/>', BEAM = '<path d="M34 12h76"/>', BRACE = '<path d="M34 38l26-26"/>', ROPE = '<path d="M110 12v20"/>';
 const HEAD = '<circle cx="110" cy="46" r="14"/>', BODY = '<path d="M110 60v48"/>', ARMS = '<path d="M110 72l-22 20M110 72l22 20"/>', LEGS = '<path d="M110 108l-20 32M110 108l20 32"/>';
 const SETS = {
-  7: [BASE, POST, BEAM, ROPE, HEAD, BODY, ARMS + LEGS],
-  6: [BASE + POST, BEAM + ROPE, HEAD, BODY, ARMS, LEGS],
+  7: [BASE + POST, BEAM, BRACE, ROPE, HEAD, BODY, ARMS + LEGS],
+  6: [BASE + POST, BEAM + BRACE, ROPE + HEAD, BODY, ARMS, LEGS],
 };
 let api = null, lastCtx = null, lastV = null;
 
