@@ -11,6 +11,10 @@ class_name = "GameRoom"
 name = "TTT"
 class_name = "TttRoom"
 
+[[durable_objects.bindings]]
+name = "PLAY"
+class_name = "PlayRoom"
+
 # Durable Objects stockés en SQLite : disponibles sur l'offre gratuite.
 [[migrations]]
 tag = "v1"
@@ -19,3 +23,7 @@ new_sqlite_classes = ["GameRoom"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["TttRoom"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["PlayRoom"]

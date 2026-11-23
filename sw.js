@@ -2,7 +2,7 @@
 // Mise à jour silencieuse : à chaque ouverture, les fichiers du jeu sont revalidés
 // auprès du serveur (sans attendre le cache HTTP de GitHub Pages) ; le cache ne sert
 // que hors ligne. Aucun message n'est jamais affiché au joueur.
-const VERSION = 'amiral-v7';
+const VERSION = 'amiral-v8';
 const SHELL = [
   './',
   './index.html',
@@ -16,6 +16,18 @@ const SHELL = [
   './src/morpion.js',
   './src/notify.js',
   './src/share.js',
+  './src/shell.js',
+  './src/games/c4.js',
+  './src/games/dames.js',
+  './src/games/mastermind.js',
+  './src/games/memory.js',
+  './src/games/pendu.js',
+  './shared/c4.js',
+  './shared/dames.js',
+  './shared/mastermind.js',
+  './shared/memory.js',
+  './shared/pendu.js',
+  './shared/words.js',
   './src/config.js',
   './src/vendor/qrcode.js',
   './icons/favicon.svg',

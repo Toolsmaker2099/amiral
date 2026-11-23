@@ -30,7 +30,7 @@ export const normalizeCode = s => String(s || '').toUpperCase().replace(/[^A-Z0-
 
 export function createOnline({ onState, onError, onStatus, game = 'amiral' }) {
   let net = null;
-  const session = sessionFor(game), base = game === 'amiral' ? 'rooms' : game;
+  const session = sessionFor(game), base = game === 'amiral' ? 'rooms' : game === 'morpion' ? 'morpion' : 'g/' + game;
 
   function open() {
     if (!net) return;
