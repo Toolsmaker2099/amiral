@@ -729,3 +729,118 @@ body[data-game="pendu"] { background: radial-gradient(70% 50% at 50% 30%, rgba(2
 .key:disabled { cursor: default; }
 .key.ok { background: #9be8a6; border-color: #9be8a6; color: #16291f; }
 .key.ko { opacity: .3; text-decoration: line-through; }
+
+/* Mastermind : indices par position, case « code » cachée */
+.mm-row.secret.hidden .peg.cq { display: grid; place-items: center; background: #11141c; color: #4cc9f0; font-style: normal; font-weight: 700; box-shadow: inset 0 2px 4px #000c; }
+.pw { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
+.pdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #11141c; box-shadow: inset 0 1px 2px #000a; }
+.pdot.b { background: #fff; box-shadow: 0 0 6px rgba(255, 255, 255, .7); }
+.pdot.w { background: #7d849b; }
+.mm-row.mini .pw .peg { width: 15px; }
+.mm-row.mini .pd { width: 6px; height: 6px; }
+.theme-mastermind .check { color: var(--ink); }
+.gk-opts .check { display: flex; align-items: center; gap: 8px; font-size: .9rem; }
+.gk-opts .check input, .game-app .check input { accent-color: var(--brass); }
+.game-app .check { display: flex; align-items: flex-start; gap: 8px; }
+.game-app .check small { display: block; color: var(--muted); font-size: .78rem; }
+
+/* ===== Accueil : cartes compactes sur téléphone (11 jeux) ===== */
+@media (max-width: 600px) {
+  .hub-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .game-card { padding: 8px 8px 12px; border-radius: 18px; }
+  .game-name { font-size: 1.3rem; padding: 4px 4px 0; }
+  .game-desc { display: none; }
+  .game-tags { padding: 2px 4px 0; }
+  .game-tags i { font-size: .68rem; padding: 3px 8px; }
+  .game-card.soon { display: none; }
+}
+
+/* ===== WINDOWS 95 : Démineur, Solitaire, FreeCell ===== */
+body[data-game="demineur"], body[data-game="solitaire"], body[data-game="freecell"] { background: #008080; }
+.theme-win { --ink: #000; --muted: #404040; --brass: #000080; --line: #808080; --plate: #c0c0c0; font-family: "Segoe UI", Tahoma, "MS Sans Serif", Arial, sans-serif; color: #fff; }
+.theme-win .top { margin-bottom: 8px; }
+.theme-win .brand h1 { font-family: Tahoma, Arial, sans-serif; font-weight: 700; font-size: 1.6rem; text-transform: none; letter-spacing: 0; color: #fff; text-shadow: 1px 1px 0 #000; }
+.theme-win .brand small { color: #dff; letter-spacing: 0; text-transform: none; font-family: Tahoma, Arial, sans-serif; font-size: .8rem; }
+.theme-win .back-btn { background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; border-radius: 0; font-family: Tahoma, Arial, sans-serif; text-transform: none; letter-spacing: 0; }
+.solo-stage { display: flex; justify-content: center; }
+.w95 { background: #c0c0c0; color: #000; border: 2px solid; border-color: #dfdfdf #404040 #404040 #dfdfdf; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #808080, 4px 4px 0 rgba(0, 0, 0, .35); padding: 3px; font-family: Tahoma, "MS Sans Serif", Arial, sans-serif; font-size: 14px; max-width: 100%; }
+.w95-title { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; font-weight: 700; padding: 3px 6px; display: flex; align-items: center; gap: 6px; }
+.w95-menu { display: flex; flex-wrap: wrap; gap: 0; padding: 2px 0; border-bottom: 1px solid #808080; }
+.w95-menu button, .btn95 { background: transparent; border: 1px solid transparent; font: inherit; color: #000; padding: 4px 9px; cursor: pointer; }
+.w95-menu button:hover { border-color: #fff #808080 #808080 #fff; }
+.w95-menu button.on, .w95-menu button[aria-pressed="true"] { border-color: #808080 #fff #fff #808080; background: #dcdcdc; }
+.w95-menu button:disabled { color: #808080; text-shadow: 1px 1px 0 #fff; cursor: default; }
+.btn95 { background: #c0c0c0; border: 2px solid; border-color: #fff #404040 #404040 #fff; min-width: 70px; margin: 4px; }
+.btn95:active { border-color: #404040 #fff #fff #404040; }
+.w95-body { padding: 6px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.w95-status { display: flex; gap: 4px; padding: 2px 0 0; font-size: 13px; }
+.w95-status > span { flex: 1; padding: 2px 6px; border: 1px solid; border-color: #808080 #fff #fff #808080; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bevel-in { border: 3px solid; border-color: #808080 #fff #fff #808080; }
+.bevel-out { border: 3px solid; border-color: #fff #808080 #808080 #fff; }
+/* Démineur */
+.mine-win { width: max-content; }
+.mine-panel { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 5px 6px; background: #c0c0c0; }
+.led { font-family: "Orbitron", "Courier New", monospace; font-weight: 900; font-size: 26px; line-height: 1; letter-spacing: 2px; color: #f00; background: #000; padding: 3px 5px; border: 2px solid; border-color: #808080 #fff #fff #808080; min-width: 62px; text-align: center; }
+.face { width: 42px; height: 42px; font-size: 24px; line-height: 1; background: #c0c0c0; cursor: pointer; padding: 0; display: grid; place-items: center; }
+.face:active { border-color: #808080; }
+.mine-scroll { max-width: 100%; overflow-x: auto; touch-action: manipulation; }
+.mine-grid { display: grid; background: #808080; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+.mc95 { width: var(--cs); height: var(--cs); display: grid; place-items: center; font: 900 calc(var(--cs) * .62)/1 "Courier New", monospace; box-sizing: border-box; cursor: default; }
+.mc95.raised { background: #c0c0c0; border: 3px solid; border-color: #fff #808080 #808080 #fff; font-size: calc(var(--cs) * .5); }
+.mc95.open { background: #c0c0c0; border: 1px solid #808080; font-size: calc(var(--cs) * .62); }
+.mc95.n1 { color: #0000ff; } .mc95.n2 { color: #008000; } .mc95.n3 { color: #ff0000; } .mc95.n4 { color: #000080; }
+.mc95.n5 { color: #800000; } .mc95.n6 { color: #008080; } .mc95.n7 { color: #000; } .mc95.n8 { color: #808080; }
+.mc95.boom { background: #f00; }
+.mc95.wrong { font-size: calc(var(--cs) * .5); }
+.mc95.raised:active { border-width: 1px; }
+/* Cartes */
+.felt95 { position: relative; background: #008000; width: 100%; margin: 2px 0; overflow: hidden; border: 2px solid; border-color: #404040 #fff #fff #404040; touch-action: none; user-select: none; -webkit-user-select: none; }
+.slot95 { position: absolute; border: 1px solid rgba(255, 255, 255, .45); border-radius: 5px; display: grid; place-items: center; color: rgba(255, 255, 255, .5); font: 700 calc(var(--cw) * .45)/1 Georgia, serif; background: rgba(0, 0, 0, .08); }
+.card95 { position: absolute; width: var(--cw); height: var(--ch); border-radius: 5px; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; cursor: pointer; transition: box-shadow .1s; }
+.card95.face { background: #fff; border: 1px solid #222; box-shadow: 1px 1px 0 rgba(0, 0, 0, .35); }
+.card95.back { background: #fff; border: 1px solid #222; box-shadow: 1px 1px 0 rgba(0, 0, 0, .35); }
+.card95.back::after { content: ""; position: absolute; inset: 3px; border-radius: 3px; background: repeating-linear-gradient(45deg, #1b3ec0 0 3px, #5b7bf0 3px 4px), #1b3ec0; border: 1px solid #fff; }
+.card95.red { color: #d40000; } .card95.blk { color: #111; }
+.card95 .cr { position: absolute; left: 3px; top: 1px; font-size: var(--fs); font-weight: 700; line-height: 1.05; display: flex; flex-direction: column; align-items: center; }
+.card95 .cr b { font-weight: 400; font-size: 1.05em; }
+.card95 .cr.bot { display: none; }
+.card95 .cc { position: absolute; right: 4px; bottom: 2px; font-size: calc(var(--cw) * .55); line-height: 1; opacity: .9; }
+.card95.sel { outline: 3px solid #ffff00; outline-offset: -1px; filter: brightness(.88); }
+.card95.dragging { z-index: 999 !important; box-shadow: 4px 6px 10px rgba(0, 0, 0, .5); transition: none; pointer-events: auto; }
+.win95-banner { position: absolute; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(0, 0, 0, .45); color: #fff; text-align: center; }
+.win95-banner b { font: 700 2.4rem Tahoma, Arial, sans-serif; text-shadow: 2px 2px 0 #000; }
+.w95-dialog { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); background: #c0c0c0; border: 2px solid; border-color: #fff #404040 #404040 #fff; padding: 12px; z-index: 3000; box-shadow: 4px 4px 0 rgba(0, 0, 0, .4); text-align: center; }
+.w95-dialog p { margin: 0 0 6px; }
+.w95-dialog input { width: 110px; font: inherit; padding: 3px 5px; border: 2px solid; border-color: #808080 #fff #fff #808080; background: #fff; text-align: center; }
+.w95-dialog[hidden] { display: none; }
+.card-win { position: relative; width: min(calc(100vw - 32px), 900px); box-sizing: border-box; }
+
+/* ===== SOLITAIRE À BILLES : plateau de bois ===== */
+body[data-game="billes"] { background: radial-gradient(70% 50% at 50% 0%, #6b4220 0%, transparent 75%), #2b1a0e; }
+.theme-billes { --ink: #f6e7cf; --muted: #cdb48f; --brass: #f0b84a; --on-brass: #2b1a0e; --line: rgba(246, 231, 207, .25); --plate: rgba(0, 0, 0, .25); font-family: "Playfair Display", Georgia, serif; color: var(--ink); }
+.theme-billes .brand h1 { font-family: "Playfair Display", Georgia, serif; font-weight: 800; text-transform: none; letter-spacing: .01em; font-size: clamp(1.9rem, 8vw, 2.6rem); line-height: 1; }
+.theme-billes .brand h1 span { color: #f0b84a; }
+.theme-billes .brand small { font-family: "Playfair Display", Georgia, serif; text-transform: none; letter-spacing: 0; font-size: .85rem; color: var(--muted); }
+.theme-billes .btn { background: rgba(0, 0, 0, .3); border: 1px solid rgba(246, 231, 207, .35); color: var(--ink); border-radius: 999px; font-family: inherit; text-transform: none; letter-spacing: 0; padding: 9px 18px; cursor: pointer; }
+.theme-billes .btn:disabled { opacity: .4; }
+.pg-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.pg-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.pg-seg label { cursor: pointer; }
+.pg-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.pg-seg span { display: block; padding: 8px 14px; font-size: .9rem; }
+.pg-seg label:has(input:checked) { background: #f0b84a; color: #2b1a0e; font-weight: 700; }
+.pg-info { display: flex; gap: 28px; }
+.pg-info div { text-align: center; } .pg-info b { display: block; font-size: 2rem; line-height: 1; } .pg-info small { color: var(--muted); font-size: .8rem; }
+.pg-table { width: min(100%, 460px); padding: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 25%, #8a5a2c, #5a3516 70%); box-shadow: inset 0 0 0 3px #2b1a0e, inset 0 6px 14px rgba(255, 255, 255, .15), 0 18px 30px rgba(0, 0, 0, .55); aspect-ratio: 1; display: grid; place-items: center; }
+.pg-board { display: grid; grid-template-columns: repeat(7, 1fr); width: 90%; aspect-ratio: 1; touch-action: none; }
+.pg-hole { position: relative; display: grid; place-items: center; padding: 0; margin: 18%; border: 0; border-radius: 50%; background: radial-gradient(circle at 50% 60%, #1e1108, #3e2610); box-shadow: inset 0 3px 5px rgba(0, 0, 0, .8), 0 1px 0 rgba(255, 255, 255, .2); cursor: pointer; }
+.pg-hole.dest { box-shadow: inset 0 3px 5px rgba(0, 0, 0, .8), 0 0 0 4px #f0b84a, 0 0 14px #f0b84a; }
+.pg-hole.centre::after { content: ""; width: 24%; height: 24%; border-radius: 50%; background: rgba(240, 184, 74, .45); }
+.pg-ball { position: absolute; inset: -16%; border-radius: 50%; background: radial-gradient(circle at 32% 28%, #fff 0 8%, #7fd0ff 20%, #1c78c8 60%, #0b3d7a); box-shadow: 0 4px 6px rgba(0, 0, 0, .55); cursor: grab; transition: transform .12s; }
+.pg-ball.can { background: radial-gradient(circle at 32% 28%, #fff 0 8%, #8fe0ff 20%, #1f8ad8 60%, #0b4a8f); }
+.pg-ball.sel { transform: scale(1.12); box-shadow: 0 0 0 3px #f0b84a, 0 8px 12px rgba(0, 0, 0, .6); }
+.pg-ball.dragging { z-index: 20; transition: none; cursor: grabbing; }
+.pg-msg { margin: 0; min-height: 1.4em; text-align: center; font-size: 1.1rem; }
+.pg-msg.end b { color: #f0b84a; font-size: 1.4rem; display: block; }
+.pg-actions { display: flex; gap: 10px; }
+.pg-help { margin: 0; max-width: 34ch; text-align: center; color: var(--muted); font-size: .85rem; }

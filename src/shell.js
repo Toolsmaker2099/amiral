@@ -21,6 +21,7 @@ export function createGame(P) {
   const fresh = () => ({
     mode: 'solo', screen: 'play',
     level: store.get(P.id + ':level') || P.defaultLevel || (P.levels && P.levels[0].id) || null,
+    options: { ...(P.defaultOptions || {}), ...(store.get(P.id + ':options') || {}) },
     g: null, starter: 0, over: false, score: [0, 0, 0], online: { code: null, status: 'connecting' },
   });
 
@@ -46,6 +47,7 @@ export function createGame(P) {
         <div class="panel plate">
           <h2>Créer une partie</h2>
           <p class="level-desc">Vous recevez un code à envoyer à votre adversaire. Le score se cumule d'une manche à l'autre.</p>
+          ${(P.options || []).map(o => `<label class="check"><input type="checkbox" data-opt="${o.id}"><span>${o.label}${o.hint ? `<small>${o.hint}</small>` : ''}</span></label>`).join('')}
           <button class="btn primary" data-r="create" type="button">Créer la partie</button>
         </div>
         <form class="panel plate" data-r="joinForm">
@@ -71,10 +73,11 @@ export function createGame(P) {
         </div>
       </div>
       <div class="gk-opts plate" data-r="opts" hidden>
-        <span class="opt-label">Niveau</span>
+        ${P.levels ? `<span class="opt-label">Niveau</span>
         <div class="seg" role="radiogroup" aria-label="Niveau de l'ordinateur">
-          ${(P.levels || []).map(l => `<label><input type="radio" name="lvl-${P.id}" value="${l.id}">${l.label}</label>`).join('')}
-        </div>
+          ${P.levels.map(l => `<label><input type="radio" name="lvl-${P.id}" value="${l.id}">${l.label}</label>`).join('')}
+        </div>` : ''}
+        ${(P.options || []).map(o => `<label class="check"><input type="checkbox" data-opt="${o.id}"><span>${o.label}</span></label>`).join('')}
       </div>
       <div class="gk-score plate" data-r="score" aria-live="polite"></div>
       <p class="gk-status" data-r="status" role="status"></p>
@@ -121,7 +124,8 @@ export function createGame(P) {
       return;
     }
     P.observe?.(v);
-    q('opts').hidden = on || !P.levels;
+    q('opts').hidden = on || !(P.levels || P.options);
+    root.querySelectorAll('[data-opt]').forEach(i => { i.checked = !!M.options[i.dataset.opt]; });
     root.querySelectorAll(`input[name="lvl-${P.id}"]`).forEach(i => { i.checked = i.value === M.level; });
 
     const res = result(), mine = myTurn();
@@ -195,7 +199,7 @@ export function createGame(P) {
   /* ---------- Solo ---------- */
   function newRound() {
     clearTimeout(aiTimer);
-    M.g = rules.create({ solo: single }, { starter: single ? 0 : M.starter });
+    M.g = rules.create({ solo: single, ...M.options }, { starter: single ? 0 : M.starter });
     M.over = false;
     P.reset?.();
     render();
@@ -250,7 +254,7 @@ export function createGame(P) {
   function joinOnline(code) { dropWatch(); net.join(code); enterOnline(code); }
   async function createOnlineGame() {
     const btn = q('create'); btn.disabled = true; lobbyMsg(''); dropWatch();
-    try { enterOnline(await net.create({})); }
+    try { enterOnline(await net.create({ opts: M.options })); }
     catch { lobbyMsg('Impossible de joindre le serveur de parties. Vérifiez votre connexion et réessayez.'); }
     finally { btn.disabled = false; }
   }
@@ -341,6 +345,10 @@ export function createGame(P) {
   function wire() {
     root.querySelectorAll(`input[name="lvl-${P.id}"]`).forEach(inp => inp.addEventListener('change', () => {
       M.level = inp.value; store.set(P.id + ':level', M.level); M.score = [0, 0, 0]; M.starter = 0; newRound();
+    }));
+    root.querySelectorAll('[data-opt]').forEach(inp => inp.addEventListener('change', () => {
+      M.options[inp.dataset.opt] = inp.checked; store.set(P.id + ':options', M.options);
+      if (M.mode === 'solo' && M.screen === 'play') { M.score = [0, 0, 0]; newRound(); } else render();
     }));
     q('again').addEventListener('click', () => { if (online()) net.send({ t: 'rematch' }); else newRound(); });
     q('quit').addEventListener('click', quitToHome);

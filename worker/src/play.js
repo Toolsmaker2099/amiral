@@ -1,7 +1,7 @@
 // Parties au tour par tour (Puissance 4, Dames, Mastermind, Memory, Pendu) : un Durable Object par partie.
 // Il arbitre avec les règles partagées (../../shared) et n'envoie à chaque joueur que ce qu'il a le droit de voir.
 import { DurableObject } from 'cloudflare:workers';
-import { RULES } from '../../shared/index.js';
+import { RULES, OPTION_KEYS } from '../../shared/index.js';
 
 const EXPIRY_MS = 24 * 60 * 60 * 1000;
 const newSeat = token => ({ token: token || null, rematch: false, left: false, away: false });
@@ -32,9 +32,11 @@ export class PlayRoom extends DurableObject {
       const b = await req.json().catch(() => ({}));
       const token = String(b.token || '').slice(0, 64);
       if (!token || !RULES[b.game]) return new Response('invalid', { status: 400 });
+      const opts = {};
+      for (const k of OPTION_KEYS[b.game] || []) opts[k] = !!(b.opts && b.opts[k]);
       this.st = {
-        game: b.game, code: b.code, phase: 'lobby', starter: 0, winner: null, forfeit: null, score: [0, 0, 0],
-        g: RULES[b.game].create({}, { starter: 0 }), seats: [newSeat(token), newSeat(null)],
+        game: b.game, code: b.code, phase: 'lobby', starter: 0, winner: null, forfeit: null, score: [0, 0, 0], opts,
+        g: RULES[b.game].create(opts, { starter: 0 }), seats: [newSeat(token), newSeat(null)],
       };
       await this.save();
       return new Response('ok');
@@ -78,7 +80,7 @@ export class PlayRoom extends DurableObject {
   startRound() {
     const st = this.st;
     st.phase = 'battle'; st.winner = null; st.forfeit = null;
-    st.g = this.rules.create({}, { starter: st.starter });
+    st.g = this.rules.create(st.opts || {}, { starter: st.starter });
     for (const s of st.seats) { s.rematch = false; s.away = false; }
   }
 

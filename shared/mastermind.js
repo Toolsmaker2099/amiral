@@ -2,6 +2,7 @@
 // Solo : on cherche seul. En duel : les deux joueurs cherchent le même code à tour de rôle ;
 // celui qui commence ne gagne pas d'avance : l'autre joue toujours autant d'essais que lui.
 export const COLORS = 6, LEN = 4, TRIES = 10;
+export const optionKeys = ['positional'];   // variante : un indice par pion, à sa position
 
 export function feedback(secret, guess) {
   let b = 0;
@@ -10,6 +11,16 @@ export function feedback(secret, guess) {
   let w = 0;
   for (let c = 0; c < COLORS; c++) w += Math.min(cs[c], cg[c]);
   return { b, w };
+}
+
+// Variante « indices attribués à une position » : pour chaque pion du joueur, 'b' (bien placé),
+// 'w' (cette couleur est dans le code, ailleurs) ou '' (absente, ou déjà toutes comptées).
+export function positionalFeedback(secret, guess) {
+  const pos = new Array(LEN).fill('');
+  const left = new Array(COLORS).fill(0);
+  for (let i = 0; i < LEN; i++) { if (secret[i] === guess[i]) pos[i] = 'b'; else left[secret[i]]++; }
+  for (let i = 0; i < LEN; i++) if (!pos[i] && left[guess[i]] > 0) { pos[i] = 'w'; left[guess[i]]--; }
+  return pos;
 }
 const lens = s => [s.guesses[0].length, s.guesses[1].length];
 function mover(s) {
@@ -35,7 +46,7 @@ function judge(s) {
 export const mastermind = {
   id: 'mastermind',
   create(opts = {}, { starter = 0 } = {}) {
-    return { secret: Array.from({ length: LEN }, () => Math.floor(Math.random() * COLORS)), solo: !!opts.solo, starter, guesses: [[], []], solved: [null, null], result: null };
+    return { secret: Array.from({ length: LEN }, () => Math.floor(Math.random() * COLORS)), solo: !!opts.solo, positional: !!opts.positional, starter, guesses: [[], []], solved: [null, null], result: null };
   },
   toMove: mover,
   legalMoves() { return []; },
@@ -44,11 +55,13 @@ export const mastermind = {
     if (s.guesses[seat].length >= TRIES) return null;
     const n = { ...s, guesses: [s.guesses[0].slice(), s.guesses[1].slice()], solved: s.solved.slice() };
     const fb = feedback(s.secret, m.g);
-    n.guesses[seat].push({ g: m.g.slice(), b: fb.b, w: fb.w });
+    const entry = { g: m.g.slice(), b: fb.b, w: fb.w };
+    if (s.positional) entry.pos = positionalFeedback(s.secret, m.g);
+    n.guesses[seat].push(entry);
     if (fb.b === LEN) n.solved[seat] = n.guesses[seat].length;
     n.result = judge(n);
     return n;
   },
   outcome: s => s.result,
-  view: s => ({ guesses: s.guesses, turn: mover(s), result: s.result, solo: s.solo, tries: TRIES, len: LEN, colors: COLORS, solved: s.solved, secret: s.result ? s.secret : null }),
+  view: s => ({ guesses: s.guesses, turn: mover(s), result: s.result, solo: s.solo, positional: s.positional, tries: TRIES, len: LEN, colors: COLORS, solved: s.solved, secret: s.result ? s.secret : null }),
 };
