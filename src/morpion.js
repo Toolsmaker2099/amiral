@@ -398,7 +398,7 @@ function wire() {
 window.TCM = { get over() { return M.over; }, get turn() { return M.turn; }, get result() { return M.result; }, get score() { return M.score; }, get net() { return net; } };
 
 /* ---------- Entrée ---------- */
-// Appelé par l'accueil Playbox à chaque ouverture du jeu. `invite` : code reçu par lien ou QR code.
+// Appelé par l'accueil de La boîte à jeux à chaque ouverture du jeu. `invite` : code reçu par lien ou QR code.
 export function open({ invite = null, resume = false } = {}) {
   if (!built) { build(); initNet(); }
   if (!M) { M = fresh(); }

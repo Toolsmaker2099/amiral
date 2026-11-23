@@ -382,7 +382,7 @@ body[data-game="hub"] {
 #hub { --ink: #fff7e8; --muted: #b9b3da; --brass: #ffc93c; --line: rgba(255, 255, 255, .16); font-family: "Fredoka", var(--font-body); color: var(--ink); gap: 26px; }
 .hub-head { display: flex; align-items: center; gap: 16px; padding-top: 6px; }
 .hub-logo { width: 64px; height: 64px; flex: none; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .4)); transform: rotate(-4deg); }
-.hub-head h1 { margin: 0; font-family: "Fredoka", sans-serif; font-weight: 700; font-size: clamp(2.6rem, 11vw, 3.8rem); line-height: .95; letter-spacing: .01em; }
+.hub-head h1 { margin: 0; font-family: "Fredoka", sans-serif; font-weight: 700; font-size: clamp(1.9rem, 8vw, 2.8rem); line-height: 1; letter-spacing: .01em; }
 .hub-head h1 span { color: #ffc93c; }
 .hub-head p { margin: 4px 0 0; color: var(--muted); font-size: 1.05rem; font-weight: 500; }
 .hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 18px; }
@@ -413,7 +413,7 @@ body[data-game="morpion"] {
   color-scheme: light;
   background-color: #f7f2e2;
   background-image:
-    linear-gradient(90deg, transparent 47px, rgba(216, 67, 59, .5) 47px 49px, transparent 49px),
+    linear-gradient(90deg, transparent 13px, rgba(216, 67, 59, .5) 13px 15px, transparent 15px),
     linear-gradient(rgba(60, 100, 170, .28) 1px, transparent 1px),
     linear-gradient(90deg, rgba(60, 100, 170, .16) 1px, transparent 1px);
   background-size: 100% 100%, 100% 32px, 32px 100%;
@@ -425,9 +425,8 @@ body[data-game="morpion"] {
   --brass: #d8433b; --brass-dim: #b23a33; --on-brass: #1f2742; --ok: #2c8a55; --hit: #c0392b; --rivet: transparent;
   --font-display: "Caveat", "Segoe Print", cursive;
   --pen: #1f2742; --red: #d8433b; --blue: #2a56c6; --mark: #ffd84d;
-  color: var(--ink); padding-left: max(60px, env(safe-area-inset-left, 0px));
+  color: var(--ink); padding-inline: max(28px, env(safe-area-inset-left, 0px)) max(28px, env(safe-area-inset-right, 0px));
 }
-@media (max-width: 520px) { #gameMorpion { padding-left: max(58px, env(safe-area-inset-left, 0px)); padding-right: 14px; } }
 #gameMorpion .plate {
   background: #fffdf5; border: 2px solid var(--pen); border-radius: 14px 10px 16px 9px / 10px 16px 9px 14px;
   box-shadow: 3px 4px 0 var(--pen);

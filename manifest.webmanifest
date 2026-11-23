@@ -1,7 +1,7 @@
 {
-  "name": "Playbox",
-  "short_name": "Playbox",
-  "description": "Playbox : Amiral (bataille navale), Morpion et d'autres jeux, seul ou à distance.",
+  "name": "La boîte à jeux",
+  "short_name": "Boîte à jeux",
+  "description": "La boîte à jeux : Amiral (bataille navale), Morpion et d'autres jeux, seul ou à distance.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
