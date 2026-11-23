@@ -800,7 +800,7 @@ function wireOnline() {
     if (!CODE_RE.test(code)) { lobbyMsg('Le code fait 5 caractères, par exemple K7QPM.'); return; }
     joinOnline(code);
   });
-  $('shareBtn').addEventListener('click', () => shareInvite($('shareBtn'), S.online.code, net.shareUrl(S.online.code), 'Amiral', $('netCode')));
+  $('shareBtn').addEventListener('click', () => shareInvite($('shareBtn'), S.online.code, net.shareUrl(S.online.code), 'Touché coulé', $('netCode')));
   $('copyCodeBtn').addEventListener('click', () => copyCode($('copyCodeBtn'), S.online.code, $('netCode')));
   $('qrBtn').addEventListener('click', () => openQr(S.online.code, net.shareUrl(S.online.code)));
   $('scanBtn').addEventListener('click', () => openScanner(joinOnline, 'amiral'));

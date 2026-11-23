@@ -18,7 +18,7 @@ const SOLO = {
   freecell: () => import('./games/freecell.js'),
   billes: () => import('./games/billes.js'),
 };
-const NAMES = { demineur: 'Démineur', solitaire: 'Solitaire', freecell: 'FreeCell', billes: 'Solitaire à billes',  hub: 'La boîte à jeux', amiral: 'Amiral', morpion: 'Morpion', c4: 'Puissance 4', dames: 'Dames', mastermind: 'Mastermind', memory: 'Memory', pendu: 'Pendu' };
+const NAMES = { demineur: 'Démineur', solitaire: 'Solitaire', freecell: 'FreeCell', billes: 'Solitaire à billes',  hub: 'La boîte à jeux', amiral: 'Touché coulé', morpion: 'Morpion', c4: 'Puissance 4', dames: 'Dames', mastermind: 'Mastermind', memory: 'Memory', pendu: 'Pendu' };
 const THEME = { demineur: '#008080', solitaire: '#008080', freecell: '#008080', billes: '#2b1a0e',  hub: '#15112f', amiral: '#06131f', morpion: '#f7f2e2', c4: '#0c2465', dames: '#2d1c10', mastermind: '#14161c', memory: '#ffc4d8', pendu: '#1d3a2e' };
 
 // Cartes de l'accueil des jeux ajoutés par le moteur commun.
