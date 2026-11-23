@@ -2,16 +2,12 @@
 import { pendu as rules } from '../../shared/pendu.js';
 
 const KEYS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-// Une erreur = un trait de plus. Le dessin commence vide ; 7 erreurs en solo, 6 en duel.
 const E = {
   base: '<path d="M14 150h104"/>', post: '<path d="M34 150V12"/>', beam: '<path d="M34 12h76"/>', brace: '<path d="M34 38l26-26"/>', rope: '<path d="M110 12v20"/>',
   head: '<circle cx="110" cy="46" r="14"/>', body: '<path d="M110 60v48"/>', armL: '<path d="M110 72l-22 20"/>', armR: '<path d="M110 72l22 20"/>', legL: '<path d="M110 108l-20 32"/>', legR: '<path d="M110 108l20 32"/>',
 };
-// Chaque élément se dessine l'un après l'autre ; un groupe correspond à une erreur.
-const SETS = {
-  7: [['base', 'post'], ['beam'], ['brace'], ['rope'], ['head'], ['body'], ['armL', 'armR', 'legL', 'legR']],
-  6: [['base', 'post'], ['beam', 'brace'], ['rope', 'head'], ['body'], ['armL', 'armR'], ['legL', 'legR']],
-};
+// Une erreur = un élément de plus, dans cet ordre (11 erreurs, solo comme duel).
+const ORDER = ['base', 'post', 'beam', 'brace', 'rope', 'head', 'body', 'armL', 'armR', 'legL', 'legR'];
 let api = null, lastCtx = null, lastV = null;
 
 function onKey(e) {
@@ -35,9 +31,9 @@ export default {
   },
   render(stage, v, ctx) {
     lastCtx = ctx; lastV = v;
-    const mine = v.errors[ctx.seat], parts = SETS[v.max] || SETS[6], svg = stage.querySelector('.pd-draw');
-    const prev = svg.dataset.n === undefined ? 0 : +svg.dataset.n, shown = Math.min(parts.length, mine);
-    svg.innerHTML = parts.slice(0, shown).map((grp, i) => grp.map((k, j) => `<g class="chalk${i >= prev && shown > prev ? ' new' : ''}" style="--d:${(j * 0.5).toFixed(1)}s">${E[k]}</g>`).join('')).join('');
+    const mine = v.errors[ctx.seat], svg = stage.querySelector('.pd-draw');
+    const prev = svg.dataset.n === undefined ? 0 : +svg.dataset.n, shown = Math.min(ORDER.length, mine);
+    svg.innerHTML = ORDER.slice(0, shown).map((k, i) => `<g class="chalk${i >= prev && shown > prev ? ' new' : ''}">${E[k]}</g>`).join('');
     svg.dataset.n = shown;
     stage.querySelector('[data-r=word]').innerHTML = v.mask.map((l, i) => `<span class="ltr${l && !v.revealedByGuess[i] ? ' miss' : ''}">${l}</span>`).join('');
     const heart = (n, max) => Array.from({ length: max }, (_, i) => `<i class="hrt${i < n ? ' lost' : ''}"></i>`).join('');

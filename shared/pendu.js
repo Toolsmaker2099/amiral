@@ -1,8 +1,9 @@
-// Pendu. Solo : on devine un mot en 7 erreurs. Duel : on joue à tour de rôle sur le même mot,
-// une bonne lettre fait rejouer, celui qui complète le mot gagne, 6 erreurs et on perd.
+// Pendu. Solo : on devine un mot en 11 erreurs. Duel : on joue à tour de rôle sur le même mot,
+// une bonne lettre fait rejouer, celui qui complète le mot gagne, 11 erreurs et on perd.
 import { WORDS } from './words.js';
 
-const maxErr = s => (s.solo ? 7 : 6);
+const MAX_ERRORS = 11;                          // un élément du dessin par erreur
+const maxErr = () => MAX_ERRORS;
 const complete = s => [...s.word].every(l => s.guessed.includes(l));
 
 export const pendu = {
