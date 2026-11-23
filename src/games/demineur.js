@@ -19,7 +19,6 @@ export default {
     let G = null, timer = null, flagMode = false, face = 'play', cells = [], press = null;
     host.innerHTML = `
     <div class="w95 mine-win">
-      <div class="w95-title"><span>💣 Démineur</span></div>
       <div class="w95-menu" data-r="menu">${Object.entries(LEVELS).map(([k, l]) => `<button type="button" data-lvl="${k}">${l.label}</button>`).join('')}<button type="button" data-r="flagmode" aria-pressed="false" title="Drapeau au toucher">🚩 Mode drapeau</button></div>
       <div class="w95-body">
         <div class="mine-panel bevel-in">

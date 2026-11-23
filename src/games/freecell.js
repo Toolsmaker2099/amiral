@@ -24,7 +24,6 @@ export default {
   mount(host) {
     host.innerHTML = `
     <div class="w95 card-win">
-      <div class="w95-title"><span>🂱 FreeCell</span></div>
       <div class="w95-menu">
         <button type="button" data-r="new">Nouvelle donne</button>
         <button type="button" data-r="pick">Choisir un n°</button>
@@ -63,7 +62,7 @@ export default {
       W = board.clientWidth || 340;
       const gap = Math.max(3, Math.min(10, Math.round(W * .011)));
       const cw = Math.floor((W - gap * 9) / 8), ch = Math.round(cw * 1.4);
-      M = { gap, cw, ch, du: Math.round(ch * .27), ty: ch + gap * 3 };
+      M = { gap, cw, ch, du: Math.round(ch * .31), ty: ch + gap * 3 };
       M.x = c => gap + c * (cw + gap);
       board.style.setProperty('--cw', cw + 'px'); board.style.setProperty('--ch', ch + 'px');
       board.style.setProperty('--fs', Math.max(9, Math.round(cw * .3)) + 'px');

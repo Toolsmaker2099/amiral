@@ -13,7 +13,6 @@ export default {
   mount(host) {
     host.innerHTML = `
     <div class="w95 card-win">
-      <div class="w95-title"><span>🂡 Solitaire</span></div>
       <div class="w95-menu">
         <button type="button" data-r="new">Nouvelle donne</button>
         <button type="button" data-r="undo">Annuler</button>
@@ -55,7 +54,7 @@ export default {
       W = board.clientWidth || 340;
       const gap = Math.max(4, Math.min(12, Math.round(W * 0.014)));
       const cw = Math.floor((W - gap * 8) / 7), ch = Math.round(cw * 1.4);
-      M = { gap, cw, ch, dd: Math.round(ch * .13), du: Math.round(ch * .27), ty: ch + gap * 3 };
+      M = { gap, cw, ch, dd: Math.round(ch * .13), du: Math.round(ch * .31), ty: ch + gap * 3 };
       M.x = c => gap + c * (cw + gap);
       board.style.setProperty('--cw', cw + 'px'); board.style.setProperty('--ch', ch + 'px');
       board.style.setProperty('--fs', Math.max(10, Math.round(cw * .3)) + 'px');
