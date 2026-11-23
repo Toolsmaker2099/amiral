@@ -5,4 +5,4 @@ import { mastermind } from './mastermind.js';
 import { memory } from './memory.js';
 import { pendu } from './pendu.js';
 export const RULES = { c4, dames, mastermind, memory, pendu };
-export const OPTION_KEYS = { mastermind: ['positional', 'long', 'nodup'] };
+export const OPTION_KEYS = { dames: ['capture', 'souffle'], mastermind: ['positional', 'long', 'nodup'] };

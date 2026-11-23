@@ -55,17 +55,32 @@ function simpleFrom(b, from, seat) {
   return out;
 }
 
-// Coups légaux pour s.turn ; ne lit que s.b et s.turn.
-export function legalMoves(s, seat = s.turn) {
+// Coups de prise obligatoire (et majoritaire) : c'est ce que joue l'ordinateur, qui ne commet jamais de faute.
+function forcedMoves(b, seat) {
   let caps = [];
-  for (let i = 0; i < 64; i++) if (owner(s.b[i]) === seat) caps = caps.concat(capturesFrom(s.b, i, seat));
+  for (let i = 0; i < 64; i++) if (owner(b[i]) === seat) caps = caps.concat(capturesFrom(b, i, seat));
   if (caps.length) {
     const best = Math.max(...caps.map(m => m.caps.length));
     return caps.filter(m => m.caps.length === best);
   }
   let out = [];
-  for (let i = 0; i < 64; i++) if (owner(s.b[i]) === seat) out = out.concat(simpleFrom(s.b, i, seat));
+  for (let i = 0; i < 64; i++) if (owner(b[i]) === seat) out = out.concat(simpleFrom(b, i, seat));
   return out;
+}
+// Tous les coups possibles, prises ou non (sans obligation).
+function freeMoves(b, seat) {
+  let out = [];
+  for (let i = 0; i < 64; i++) if (owner(b[i]) === seat) out = out.concat(capturesFrom(b, i, seat), simpleFrom(b, i, seat));
+  return out;
+}
+const optCapture = s => s.capture !== false;
+const optSouffle = s => optCapture(s) && s.souffle === true;
+
+// Coups légaux pour s.turn ; lit s.b, s.turn et les options (s.capture, s.souffle).
+// Prise obligatoire (par défaut) : seules les prises majoritaires. Sans prise obligatoire, ou avec le soufflé,
+// tous les coups sont permis ; avec le soufflé, c'est l'adversaire qui sanctionne l'oubli.
+export function legalMoves(s, seat = s.turn) {
+  return optCapture(s) && !optSouffle(s) ? forcedMoves(s.b, seat) : freeMoves(s.b, seat);
 }
 
 // Joue un coup légal sans validation ni détection de fin (recherche de l'ordinateur).
@@ -77,15 +92,26 @@ export function step(s, mv) {
   for (const t of mv.caps) b[t] = 0;
   if (!wasKing && ((seat === 0 && to < 8) || (seat === 1 && to >= 56))) piece = seat === 0 ? 2 : 4;
   b[to] = piece;
-  return { b, turn: 1 - seat };
+  return { b, turn: 1 - seat, capture: s.capture };
 }
 
 export const dames = {
   id: 'dames',
   legalMoves,
-  create(opts, { starter = 0 } = {}) { return { b: initial(), turn: starter, result: null, last: null, quiet: 0 }; },
+  create(opts = {}, { starter = 0 } = {}) {
+    const capture = opts.capture !== false;
+    return { b: initial(), turn: starter, result: null, last: null, quiet: 0, capture, souffle: capture && !!opts.souffle, huff: null };
+  },
   toMove: s => (s.result ? null : s.turn),
   apply(s, seat, m) {
+    // Souffler : retirer le pion adverse qui aurait dû prendre, puis jouer son coup normalement.
+    if (m && Number.isInteger(m.huff) && m.path === undefined) {
+      if (s.result || s.turn !== seat || !s.huff || s.huff.seat !== 1 - seat || !s.huff.sqs.includes(m.huff)) return null;
+      const b = s.b.slice(); b[m.huff] = 0;
+      const n = { ...s, b, huff: null, last: null };
+      if (!b.some(v => owner(v) === 1 - seat)) n.result = { winner: seat };
+      return n;
+    }
     if (s.result || s.turn !== seat || !m || !Array.isArray(m.path) || m.path.length < 2 || !m.path.every(Number.isInteger)) return null;
     const key = m.path.join(',');
     const mv = legalMoves(s).find(x => x.path.join(',') === key);
@@ -97,7 +123,14 @@ export const dames = {
     for (const t of mv.caps) b[t] = 0;
     if (!wasKing && ((seat === 0 && to < 8) || (seat === 1 && to >= 56))) piece = seat === 0 ? 2 : 4;
     b[to] = piece;
-    const n = { b, turn: 1 - seat, result: null, last: mv.path, quiet: wasKing && !mv.caps.length ? s.quiet + 1 : 0 };
+    const n = { ...s, b, turn: 1 - seat, result: null, last: mv.path, quiet: wasKing && !mv.caps.length ? s.quiet + 1 : 0, huff: null };
+    if (optSouffle(s)) {                            // faute : une prise (la plus longue) était possible et n'a pas été jouée
+      const forced = forcedMoves(s.b, seat);
+      if (forced.length && forced[0].caps.length && mv.caps.length < forced[0].caps.length) {
+        const sqs = [...new Set(forced.map(x => (x.path[0] === from ? to : x.path[0])))];
+        n.huff = { seat, sqs };
+      }
+    }
     if (!legalMoves(n).length) n.result = { winner: seat };
     else if (n.quiet >= 50) n.result = { winner: 'draw' };
     return n;

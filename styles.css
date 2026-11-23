@@ -913,3 +913,5 @@ button.mmw-hole:not(:disabled) { cursor: pointer; }
 @keyframes mmwdrop { from { transform: translateY(-45%) scale(1.25); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes mmwpop { from { transform: scale(.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes mmwshake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+.sq.huff .pc { box-shadow: 0 0 0 3px #ff4d4d, 0 0 14px #ff4d4d; animation: dmcan 1s ease-in-out infinite; }
+.sq.huff { cursor: pointer; }

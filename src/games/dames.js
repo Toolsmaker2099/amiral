@@ -1,4 +1,4 @@
-// Dames : plateau en bois ciré, pions ivoire et ébène. Prise obligatoire et majoritaire.
+// Dames : plateau en bois ciré, pions ivoire et ébène. Prise obligatoire (ou non), soufflé en option.
 import { dames as rules, legalMoves, step } from '../../shared/dames.js';
 
 const owner = v => (v === 0 ? null : v <= 2 ? 0 : 1);
@@ -31,7 +31,12 @@ function search(s, depth, alpha, beta) {
   return best;
 }
 function aiMove(state, level) {
-  const s = { b: state.b, turn: state.turn }, moves = legalMoves(s);
+  // Soufflé : l'ordinateur ne fait pas de faute, mais souffle volontiers celles de l'adversaire (une dame de préférence).
+  if (state.huff && state.huff.seat !== state.turn) {
+    const sq = [...state.huff.sqs].sort((a, b) => (isKing(state.b[b]) ? 1 : 0) - (isKing(state.b[a]) ? 1 : 0))[0];
+    return { huff: sq };
+  }
+  const s = { b: state.b, turn: state.turn, capture: state.capture }, moves = legalMoves(s);
   if (!moves.length) return null;
   if (level === 'easy' && Math.random() < .5) return moves[Math.floor(Math.random() * moves.length)];
   const depth = level === 'easy' ? 1 : level === 'medium' ? 3 : 5;
@@ -46,12 +51,18 @@ function aiMove(state, level) {
 /* ----- Affichage ----- */
 let sqs = [], sel = null, last = { b: null, seat: 0 }, api = null;
 
-function showMoves(v, ctx) { return ctx.interactive ? legalMoves({ b: v.b, turn: ctx.seat }) : []; }
+function showMoves(v, ctx) { return ctx.interactive ? legalMoves({ b: v.b, turn: ctx.seat, capture: v.capture, souffle: v.souffle }) : []; }
+const huffSet = (v, ctx) => new Set(ctx.interactive && v.huff && v.huff.seat !== ctx.seat ? v.huff.sqs : []);
 
 export default {
   id: 'dames', theme: 'dames', rules, solo: 'ai',
   title: ['Dames', ''], tagline: 'Prises obligatoires',
   levels: [{ id: 'easy', label: 'Facile' }, { id: 'medium', label: 'Moyen' }, { id: 'hard', label: 'Fort' }], defaultLevel: 'medium',
+  defaultOptions: { capture: true },
+  options: [
+    { id: 'capture', label: 'Prise obligatoire', hint: 'Si une prise est possible, il faut la jouer, et choisir celle qui prend le plus de pièces.' },
+    { id: 'souffle', label: 'Soufflé', hint: 'On peut oublier de prendre, mais l\'adversaire peut alors retirer (souffler) le pion qui aurait dû prendre. Il faut que la prise obligatoire soit cochée.' },
+  ],
   badge: seat => `<i class="pc p${seat}"></i>`,
   aiMove, aiDelay: () => 550,
   reset() { sel = null; last = { b: null, seat: 0 }; },
@@ -70,6 +81,8 @@ export default {
     board.addEventListener('click', e => {
       const el = e.target.closest('.sq'); if (!el || !last.ctx) return;
       const i = +el.dataset.i, { v, ctx } = last;
+      const hs = huffSet(v, ctx);
+      if (hs.has(i)) { sel = null; api.play({ huff: i }); return; }
       const moves = showMoves(v, ctx);
       if (!moves.length) return;
       if (sel !== null) {
@@ -87,7 +100,7 @@ export default {
     board.classList.toggle('flip', flip);
     const moves = showMoves(v, ctx);
     if (!ctx.interactive) sel = null;
-    const movable = new Set(moves.map(m => m.path[0]));
+    const movable = new Set(moves.map(m => m.path[0])), huffs = huffSet(v, ctx);
     const dests = new Set(sel === null ? [] : moves.filter(m => m.path[0] === sel).map(m => m.path[m.path.length - 1]));
     const lastSet = new Set(v.last ? [v.last[0], v.last[v.last.length - 1]] : []);
     for (let k = 0; k < 64; k++) {
@@ -99,15 +112,18 @@ export default {
       sq.classList.toggle('dest', dests.has(i));
       sq.classList.toggle('last', lastSet.has(i));
       sq.classList.toggle('can', ctx.interactive && movable.has(i) && sel === null);
-      sq.disabled = !(ctx.interactive && (movable.has(i) || dests.has(i)));
+      sq.classList.toggle('huff', huffs.has(i));
+      sq.disabled = !(ctx.interactive && (movable.has(i) || dests.has(i) || huffs.has(i)));
       sq.setAttribute('aria-label', 'Case ' + 'ABCDEFGH'[i % 8] + (8 - ((i / 8) | 0)) + (val ? (owner(val) === ctx.seat ? ', votre pièce' : ', pièce adverse') : ''));
     }
   },
   statusText(v, ctx) {
     if (ctx.over) return null;
     if (ctx.interactive) {
-      const caps = legalMoves({ b: v.b, turn: ctx.seat }).some(m => m.caps.length);
-      return caps ? 'Prise obligatoire !' : 'À vous de jouer';
+      if (v.huff && v.huff.seat !== ctx.seat) return 'Votre adversaire a oublié de prendre : soufflez le pion marqué, ou jouez';
+      const caps = legalMoves({ b: v.b, turn: ctx.seat, capture: v.capture, souffle: v.souffle }).some(m => m.caps.length);
+      if (!caps) return 'À vous de jouer';
+      return v.capture === false ? 'Une prise est possible' : v.souffle ? 'Prise à jouer, sinon vous serez soufflé !' : 'Prise obligatoire !';
     }
     return null;
   },
