@@ -43,8 +43,8 @@ export default {
     }
     function build() {
       const L = G, scroll = host.querySelector('.mine-scroll');
-      const avail = Math.min(window.innerWidth - 56, 760);
-      const cs = Math.max(24, Math.min(34, Math.floor(avail / L.cols)));
+      const avail = Math.min(window.innerWidth - 76, 760);
+      const cs = Math.max(18, Math.min(34, Math.floor(avail / L.cols)));
       grid.style.setProperty('--cs', cs + 'px');
       grid.style.gridTemplateColumns = `repeat(${L.cols}, var(--cs))`;
       grid.innerHTML = '';
