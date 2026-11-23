@@ -19,7 +19,7 @@ const SOLO = {
   billes: () => import('./games/billes.js'),
 };
 const NAMES = { demineur: 'Démineur', solitaire: 'Solitaire', freecell: 'FreeCell', billes: 'Solitaire à billes',  hub: 'La boîte à jeux', amiral: 'Touché coulé', morpion: 'Morpion', c4: 'Puissance 4', dames: 'Dames', mastermind: 'Mastermind', memory: 'Memory', pendu: 'Pendu' };
-const THEME = { demineur: '#008080', solitaire: '#008080', freecell: '#008080', billes: '#2b1a0e',  hub: '#15112f', amiral: '#06131f', morpion: '#f7f2e2', c4: '#0c2465', dames: '#2d1c10', mastermind: '#14161c', memory: '#ffc4d8', pendu: '#1d3a2e' };
+const THEME = { demineur: '#008080', solitaire: '#008080', freecell: '#008080', billes: '#2b1a0e',  hub: '#15112f', amiral: '#06131f', morpion: '#f7f2e2', c4: '#0c2465', dames: '#2d1c10', mastermind: '#2b180b', memory: '#ffc4d8', pendu: '#1d3a2e' };
 
 // Cartes de l'accueil des jeux ajoutés par le moteur commun.
 const CARDS = [
@@ -32,10 +32,11 @@ const CARDS = [
     <rect width="240" height="120" fill="#2d1c10"/>
     ${Array.from({ length: 8 }, (_, r) => Array.from({ length: 8 }, (_, c) => `<rect x="${56 + c * 16}" y="${r * 15 - 0}" width="16" height="15" fill="${(r + c) % 2 ? '#8a5028' : '#f0d9b0'}"/>`).join('')).join('')}
     <circle cx="104" cy="52" r="6" fill="#f4eacb"/><circle cx="136" cy="67" r="6" fill="#f4eacb"/><circle cx="120" cy="37" r="6" fill="#1b1b1b"/><circle cx="88" cy="82" r="6" fill="#1b1b1b"/><circle cx="152" cy="97" r="6" fill="#f4eacb"/>` },
-  { id: 'mastermind', desc: 'Cassez le code de couleurs en dix essais, seul ou en duel.', art: `
-    <rect width="240" height="120" fill="#14161c"/>
-    ${[['#ef476f', '#ffd166', '#06d6a0', '#118ab2'], ['#8e6bf0', '#ef476f', '#ffd166', '#06d6a0'], ['#118ab2', '#118ab2', '#ff9f1c', '#8e6bf0']].map((row, r) =>
-      row.map((c, i) => `<circle cx="${62 + i * 28}" cy="${24 + r * 34}" r="11" fill="${c}"/>`).join('') + `<circle cx="${186}" cy="${20 + r * 34}" r="4" fill="#fff"/><circle cx="${197}" cy="${20 + r * 34}" r="4" fill="#7d849b"/><circle cx="${186}" cy="${31 + r * 34}" r="4" fill="#fff"/><circle cx="${197}" cy="${31 + r * 34}" r="4" fill="#11141c"/>`).join('')}` },
+  { id: 'mastermind', desc: 'Percez le code secret de pions colorés, seul ou en duel.', art: `
+    <rect width="240" height="120" fill="#c2905a"/><rect x="6" y="6" width="228" height="108" rx="10" fill="none" stroke="#5a371c" stroke-width="6"/>
+    <rect x="52" y="12" width="136" height="24" rx="6" fill="#3d2411"/><rect x="54" y="14" width="132" height="20" rx="5" fill="#d9b85c"/>
+    ${[['#d8301f', '#2362d6', '#f2c200', '#2f9e44'], ['#7d3fb0', '#d8301f', '#f08300', '#2362d6'], ['#2f9e44', '#f2c200', '#d8301f', '#12b5ae']].map((row, r) =>
+      row.map((c, i) => `<circle cx="${68 + i * 26}" cy="${96 - r * 24}" r="9" fill="#2b170a"/><circle cx="${68 + i * 26}" cy="${96 - r * 24}" r="8" fill="${c}"/><circle cx="${65 + i * 26}" cy="${93 - r * 24}" r="2.4" fill="#fff" fill-opacity=".6"/>`).join('') + [0, 1, 2, 3].map(k => `<circle cx="${176 + (k % 2) * 10}" cy="${91 - r * 24 + Math.floor(k / 2) * 10}" r="3.4" fill="${[['#111', '#f2ead8', '#111', '#2b170a'], ['#f2ead8', '#2b170a', '#111', '#f2ead8'], ['#111', '#111', '#f2ead8', '#2b170a']][r][k]}"/>`).join('')).join('')}` },
   { id: 'memory', desc: 'Retournez les cartes et retrouvez les paires.', art: `
     <rect width="240" height="120" fill="#ffd6e3"/>
     ${[['🐙', null, '🍩', null], [null, '🦊', null, '🐙'], ['🍩', null, '🦊', null]].map((row, r) => row.map((f, c) => `<rect x="${56 + c * 32}" y="${10 + r * 36}" width="28" height="32" rx="7" fill="${f ? '#fff' : '#ff6f91'}" stroke="#fff" stroke-width="2"/>${f ? `<text x="${70 + c * 32}" y="${33 + r * 36}" font-size="17" text-anchor="middle">${f}</text>` : ''}`).join('')).join('')}` },

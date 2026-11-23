@@ -2,7 +2,7 @@
 // Mise à jour silencieuse : à chaque ouverture, les fichiers du jeu sont revalidés
 // auprès du serveur (sans attendre le cache HTTP de GitHub Pages) ; le cache ne sert
 // que hors ligne. Aucun message n'est jamais affiché au joueur.
-const VERSION = 'amiral-v9';
+const VERSION = 'amiral-v10';
 const SHELL = [
   './',
   './index.html',
@@ -18,6 +18,8 @@ const SHELL = [
   './src/share.js',
   './src/shell.js',
   './src/cards.js',
+  './assets/wood-dark.webp',
+  './assets/wood-oak.webp',
   './src/games/demineur.js',
   './src/games/solitaire.js',
   './src/games/freecell.js',
