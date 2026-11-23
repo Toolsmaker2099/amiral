@@ -1,14 +1,14 @@
 {
-  "name": "La boîte de jeux",
-  "short_name": "Jeux",
-  "description": "Amiral (bataille navale), Morpion et d'autres jeux classiques, seul ou à distance.",
+  "name": "Playbox",
+  "short_name": "Playbox",
+  "description": "Playbox : Amiral (bataille navale), Morpion et d'autres jeux, seul ou à distance.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#06131f",
-  "theme_color": "#06131f",
+  "background_color": "#15112f",
+  "theme_color": "#15112f",
   "icons": [
     {
       "src": "icons/icon-192.png",

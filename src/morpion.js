@@ -71,7 +71,7 @@ function build() {
   built = true;
   root.innerHTML = `
   <header class="top">
-    <button type="button" class="back-btn" id="mHub" aria-label="Retour à la boîte de jeux">‹ Jeux</button>
+    <button type="button" class="back-btn" id="mHub" aria-label="Retour à l'accueil">‹ Jeux</button>
     <div class="brand">
       <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#e2ab45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5v30M25 5v30M5 15h30M5 25h30"/></svg>
       <div><h1>Mor<span>pion</span></h1><small>Trois à la suite</small></div>
@@ -398,7 +398,7 @@ function wire() {
 window.TCM = { get over() { return M.over; }, get turn() { return M.turn; }, get result() { return M.result; }, get score() { return M.score; }, get net() { return net; } };
 
 /* ---------- Entrée ---------- */
-// Appelé par la boîte de jeux à chaque ouverture du jeu. `invite` : code reçu par lien ou QR code.
+// Appelé par l'accueil Playbox à chaque ouverture du jeu. `invite` : code reçu par lien ou QR code.
 export function open({ invite = null, resume = false } = {}) {
   if (!built) { build(); initNet(); }
   if (!M) { M = fresh(); }

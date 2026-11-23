@@ -71,7 +71,7 @@ export async function openScanner(onCode, game) {
       const found = text && parseScan(text);
       if (found && (!found.game || found.game === game)) { closeScanner(); onCode(found.code); return; }
       if (found) scanMsg('Ce QR code est celui d\'un autre jeu.');
-      else if (text) scanMsg('Ce QR code ne correspond pas à une partie de la boîte de jeux.');
+      else if (text) scanMsg('Ce QR code ne correspond pas à une partie de Playbox.');
       session.timer = setTimeout(loop, 150);
     };
     loop();
@@ -102,7 +102,7 @@ export async function copyCode(btn, code, codeEl) {
 }
 
 export async function shareInvite(btn, code, url, gameName, codeEl) {
-  const text = `Rejoins-moi sur ${gameName}, dans La boîte de jeux. Code de la partie : ${code}`;
+  const text = `Rejoins-moi sur ${gameName}, dans Playbox. Code de la partie : ${code}`;
   if (navigator.share) { try { await navigator.share({ title: gameName, text, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
   try { await navigator.clipboard.writeText(`${text}\n${url}`); btn.textContent = 'Lien copié'; }
   catch { selectText(codeEl); btn.textContent = 'Code sélectionné'; }

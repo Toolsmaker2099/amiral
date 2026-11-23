@@ -1,15 +1,18 @@
-// La boîte de jeux : l'écran d'accueil qui lance Amiral ou le Morpion.
+// Playbox : l'écran d'accueil qui lance Amiral ou le Morpion.
 import { savedOnline, CODE_RE, normalizeCode } from './online.js';
 
 const $ = id => document.getElementById(id);
 const screens = { hub: $('hub'), amiral: $('gameAmiral'), morpion: $('gameMorpion') };
-const TITLES = { hub: 'La boîte de jeux', amiral: 'Amiral · La boîte de jeux', morpion: 'Morpion · La boîte de jeux' };
+const TITLES = { hub: 'Playbox', amiral: 'Amiral · Playbox', morpion: 'Morpion · Playbox' };
+const THEME = { hub: '#15112f', amiral: '#06131f', morpion: '#f7f2e2' };
 
 async function show(game, opts) {
   if (game === 'amiral') await import('./ui.js');
   if (game === 'morpion') (await import('./morpion.js')).open(opts);
   for (const [k, el] of Object.entries(screens)) el.hidden = k !== game;
   document.title = TITLES[game];
+  document.body.dataset.game = game;
+  $('themeColor').setAttribute('content', THEME[game]);
   window.scrollTo(0, 0);
 }
 
