@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'worker/**'
+      - 'shared/**'
       - 'src/engine.js'
       - '.github/workflows/deploy-server.yml'
   workflow_dispatch:
