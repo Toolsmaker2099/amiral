@@ -714,7 +714,7 @@ body[data-game="pendu"] { background: radial-gradient(70% 50% at 50% 30%, rgba(2
 .pd { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
 .pd-draw { width: min(52%, 190px); overflow: visible; }
 .pd-draw g { fill: none; stroke: #f3f1e7; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
-.pd-draw path, .pd-draw circle { stroke-dasharray: 200; animation: chalk .5s ease-out both; }
+.pd-draw .new path, .pd-draw .new circle { stroke-dasharray: 200; animation: chalk .5s ease-out both; }
 @keyframes chalk { from { stroke-dashoffset: 200; } to { stroke-dashoffset: 0; } }
 .pd-lives { display: flex; align-items: center; gap: 5px; font-size: 1rem; color: var(--muted); flex-wrap: wrap; justify-content: center; }
 .pd-lives .sp { width: 14px; }

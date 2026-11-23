@@ -2,13 +2,13 @@
 import { pendu as rules } from '../../shared/pendu.js';
 
 const KEYS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const PARTS = [
-  '<path d="M10 150h110M30 150V10h80v22"/>',                     // potence
-  '<circle cx="110" cy="46" r="14"/>',                           // tête
-  '<path d="M110 60v48"/>',                                      // corps
-  '<path d="M110 70l-22 20"/>', '<path d="M110 70l22 20"/>',     // bras
-  '<path d="M110 108l-20 30"/>', '<path d="M110 108l20 30"/>',   // jambes
-];
+// Une erreur = un trait de plus. Le dessin commence vide ; 7 erreurs en solo, 6 en duel.
+const BASE = '<path d="M14 150h104"/>', POST = '<path d="M34 150V12"/>', BEAM = '<path d="M34 12h76M34 36l24-24"/>', ROPE = '<path d="M110 12v20"/>';
+const HEAD = '<circle cx="110" cy="46" r="14"/>', BODY = '<path d="M110 60v48"/>', ARMS = '<path d="M110 72l-22 20M110 72l22 20"/>', LEGS = '<path d="M110 108l-20 32M110 108l20 32"/>';
+const SETS = {
+  7: [BASE, POST, BEAM, ROPE, HEAD, BODY, ARMS + LEGS],
+  6: [BASE + POST, BEAM + ROPE, HEAD, BODY, ARMS, LEGS],
+};
 let api = null, lastCtx = null, lastV = null;
 
 function onKey(e) {
@@ -32,8 +32,10 @@ export default {
   },
   render(stage, v, ctx) {
     lastCtx = ctx; lastV = v;
-    const mine = v.errors[ctx.seat], shown = Math.min(PARTS.length, 1 + (mine === 0 ? 0 : Math.ceil(mine * 6 / v.max)));
-    stage.querySelector('.pd-draw').innerHTML = `<g class="chalk">${PARTS.slice(0, shown).join('')}</g>`;
+    const mine = v.errors[ctx.seat], parts = SETS[v.max] || SETS[6], svg = stage.querySelector('.pd-draw');
+    const prev = svg.dataset.n === undefined ? 0 : +svg.dataset.n, shown = Math.min(parts.length, mine);
+    svg.innerHTML = parts.slice(0, shown).map((p, i) => `<g class="chalk${i >= prev && shown > prev ? ' new' : ''}">${p}</g>`).join('');
+    svg.dataset.n = shown;
     stage.querySelector('[data-r=word]').innerHTML = v.mask.map((l, i) => `<span class="ltr${l && !v.revealedByGuess[i] ? ' miss' : ''}">${l}</span>`).join('');
     const heart = (n, max) => Array.from({ length: max }, (_, i) => `<i class="hrt${i < n ? ' lost' : ''}"></i>`).join('');
     stage.querySelector('[data-r=lives]').innerHTML = v.solo
